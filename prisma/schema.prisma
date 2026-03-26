@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Article {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  content        String?
+  url            String   @unique
+  imageUrl       String?
+  publishedAt    DateTime
+  source         String
+  sourceUrl      String?
+  category       String
+  sentiment      String   @default("neutral")
+  sentimentScore Float    @default(0)
+  aiSummary      String?
+  isRead         Boolean  @default(false)
+  isSaved        Boolean  @default(false)
+  fetchedAt      DateTime @default(now())
+}
+
+model TopStory {
+  id         String   @id @default(cuid())
+  title      String
+  summary    String
+  category   String
+  articleIds String
+  sources    String
+  sentiment  String   @default("neutral")
+  createdAt  DateTime @default(now())
+}
+
+model UserPreferences {
+  id                String   @id @default("default")
+  positiveRatio     Float    @default(0.4)
+  neutralRatio      Float    @default(0.4)
+  negativeRatio     Float    @default(0.2)
+  enabledCategories String   @default("technology,science,business,world,positive")
+  refreshIntervalMins Int    @default(60)
+  updatedAt         DateTime @updatedAt
+}
+
+model AppState {
+  id            String    @id @default("default")
+  lastRefreshed DateTime?
+  updatedAt     DateTime  @updatedAt
+}
