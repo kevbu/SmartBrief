@@ -2,8 +2,10 @@ version: '3.8'
 services:
   smartbrief:
     build: .
-    ports:
-      - "3000:3000"
+    # No ports exposed — Nginx Proxy Manager routes traffic via the shared Docker network.
+    # For local-only access without NPM, uncomment the line below:
+    # ports:
+    #   - "3000:3000"
     environment:
       - DATABASE_URL=file:/app/data/smartbrief.db
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -11,3 +13,12 @@ services:
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+    networks:
+      - npm_network
+
+networks:
+  # The external network created by Nginx Proxy Manager.
+  # Run `docker network ls` on your VPS to confirm the exact name
+  # (common alternatives: nginx-proxy-manager_default, proxy, npm_default).
+  npm_network:
+    external: true
