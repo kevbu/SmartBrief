@@ -1,11 +1,15 @@
 'use client'
 
 import LoadingSpinner from './LoadingSpinner'
+import MoodPresetToggle from './MoodPresetToggle'
+import type { MoodPreset } from '@/types'
 
 interface HeaderProps {
   onRefresh: () => void
   isRefreshing: boolean
   lastRefreshed: string | null
+  moodPreset: MoodPreset
+  onMoodChange: (preset: MoodPreset) => void
 }
 
 function formatLastRefreshed(dateStr: string | null): string {
@@ -26,6 +30,8 @@ export default function Header({
   onRefresh,
   isRefreshing,
   lastRefreshed,
+  moodPreset,
+  onMoodChange,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
@@ -61,6 +67,15 @@ export default function Header({
             </svg>
           )}
         </button>
+      </div>
+
+      {/* Mood preset toggle */}
+      <div className="px-4 pb-3">
+        <MoodPresetToggle
+          value={moodPreset}
+          onChange={onMoodChange}
+          disabled={isRefreshing}
+        />
       </div>
     </header>
   )

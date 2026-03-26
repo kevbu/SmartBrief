@@ -6,6 +6,7 @@ import TopicTabs from '@/components/TopicTabs'
 import TopStoryCard from '@/components/TopStoryCard'
 import ArticleCard from '@/components/ArticleCard'
 import BalanceMeter from '@/components/BalanceMeter'
+import SessionProgress from '@/components/SessionProgress'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import type {
   Article,
@@ -13,6 +14,8 @@ import type {
   BalanceStats,
   UserPreferences,
   NewsApiResponse,
+  MoodPreset,
+  FeedbackType,
 } from '@/types'
 
 function SkeletonCard() {
@@ -42,6 +45,11 @@ export default function HomePage() {
   const [hasApiKey, setHasApiKey] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Session state: how many articles in the current briefing session
+  const [sessionLimit, setSessionLimit] = useState(15)
+  const [articlesRead, setArticlesRead] = useState(0)
+  const [sessionExpanded, setSessionExpanded] = useState(false)
+
   const fetchNews = useCallback(async (category: string) => {
     try {
       setError(null)
@@ -54,6 +62,9 @@ export default function HomePage() {
       setPreferences(data.preferences)
       setLastRefreshed(data.lastRefreshed)
       setHasApiKey(data.hasApiKey)
+      if (data.preferences?.sessionSize) {
+        setSessionLimit(data.preferences.sessionSize)
+      }
     } catch (err) {
       setError('Failed to load news. Please try again.')
       console.error(err)
@@ -69,6 +80,8 @@ export default function HomePage() {
       const data = await res.json()
       setLastRefreshed(data.lastRefreshed)
       await fetchNews(activeCategory)
+      setArticlesRead(0)
+      setSessionExpanded(false)
     } catch (err) {
       console.error('Refresh error:', err)
     } finally {
@@ -76,19 +89,37 @@ export default function HomePage() {
     }
   }, [isRefreshing, fetchNews, activeCategory])
 
+  const handleMoodChange = useCallback(async (preset: MoodPreset) => {
+    try {
+      const res = await fetch('/api/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moodPreset: preset }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.preferences) setPreferences(data.preferences)
+        await fetchNews(activeCategory)
+      }
+    } catch (err) {
+      console.error('Mood change error:', err)
+    }
+  }, [fetchNews, activeCategory])
+
   // Initial load
   useEffect(() => {
     async function init() {
       setIsLoading(true)
       try {
-        // Check if we need to auto-refresh
         const res = await fetch('/api/news?category=all')
         if (res.ok) {
           const data: NewsApiResponse = await res.json()
           setLastRefreshed(data.lastRefreshed)
           setHasApiKey(data.hasApiKey)
+          if (data.preferences?.sessionSize) {
+            setSessionLimit(data.preferences.sessionSize)
+          }
 
-          // Auto-refresh if last refresh was > refreshIntervalMins ago or never
           const intervalMins = data.preferences?.refreshIntervalMins ?? 60
           const shouldRefresh =
             !data.lastRefreshed ||
@@ -124,12 +155,15 @@ export default function HomePage() {
   useEffect(() => {
     if (!isLoading) {
       fetchNews(activeCategory)
+      setArticlesRead(0)
+      setSessionExpanded(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCategory])
 
   function handleMarkRead(id: string) {
     fetch(`/api/articles/${id}/read`, { method: 'POST' }).catch(console.error)
+    setArticlesRead((n) => n + 1)
   }
 
   function handleToggleSave(id: string) {
@@ -139,8 +173,26 @@ export default function HomePage() {
     )
   }
 
+  function handleFeedback(id: string, feedback: FeedbackType) {
+    if (feedback === 'hide-source') {
+      const article = articles.find((a) => a.id === id)
+      if (article) {
+        setArticles((prev) => prev.filter((a) => a.source !== article.source))
+      }
+    }
+  }
+
+  const depthMode = preferences?.depthMode ?? 'skim'
+  const moodPreset = preferences?.moodPreset ?? 'balanced'
+
+  // Session-limited articles
+  const displayedArticles = sessionExpanded
+    ? articles
+    : articles.slice(0, sessionLimit)
+
   const showTopStories =
     activeCategory === 'all' && topStories.length > 0 && !isLoading
+  const showSessionProgress = articles.length > 0 && !isLoading
 
   return (
     <div>
@@ -148,12 +200,16 @@ export default function HomePage() {
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
         lastRefreshed={lastRefreshed}
+        moodPreset={moodPreset}
+        onMoodChange={handleMoodChange}
       />
 
       {!hasApiKey && (
         <div className="mx-4 mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
           <strong>AI features disabled.</strong> Add your{' '}
           <code className="rounded bg-amber-100 px-1">ANTHROPIC_API_KEY</code>{' '}
+          to{' '}
+          <code className="rounded bg-amber-100 px-1">.env.local</code>{' '}
           to enable sentiment analysis and smart summaries.
         </div>
       )}
@@ -198,6 +254,51 @@ export default function HomePage() {
             onCategoryChange={setActiveCategory}
           />
 
+          {/* Depth mode toggle */}
+          {articles.length > 0 && (
+            <div className="mx-4 mb-2 flex items-center gap-2">
+              <span className="text-xs text-gray-400">View:</span>
+              <div className="flex rounded-lg bg-gray-100 p-0.5">
+                {(['skim', 'deep'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/preferences', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ depthMode: mode }),
+                        })
+                        if (res.ok) {
+                          const data = await res.json()
+                          if (data.preferences) setPreferences(data.preferences)
+                        }
+                      } catch (err) {
+                        console.error(err)
+                      }
+                    }}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                      depthMode === mode
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-gray-500'
+                    }`}
+                  >
+                    {mode === 'skim' ? '⚡ Skim' : '📖 Deep'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Session progress */}
+          {showSessionProgress && !sessionExpanded && (
+            <SessionProgress
+              current={articlesRead}
+              total={sessionLimit}
+              onLoadMore={() => setSessionExpanded(true)}
+            />
+          )}
+
           {/* Articles */}
           {isRefreshing && articles.length === 0 ? (
             <div className="pt-4">
@@ -217,14 +318,36 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="pt-1">
-              {articles.map((article) => (
+              {displayedArticles.map((article) => (
                 <ArticleCard
                   key={article.id}
                   article={article}
+                  depthMode={depthMode}
                   onMarkRead={handleMarkRead}
                   onToggleSave={handleToggleSave}
+                  onFeedback={handleFeedback}
                 />
               ))}
+
+              {/* Show session complete / load more when not expanded */}
+              {!sessionExpanded && articles.length > sessionLimit && (
+                <div className="mx-4 mb-4 mt-2 rounded-2xl bg-emerald-50 p-5 text-center">
+                  <div className="mb-2 text-3xl">🌟</div>
+                  <h3 className="mb-1 text-base font-bold text-emerald-800">
+                    Briefing complete!
+                  </h3>
+                  <p className="mb-3 text-xs text-emerald-600">
+                    You&apos;ve read your {sessionLimit}-story brief. Great job staying informed.
+                  </p>
+                  <button
+                    onClick={() => setSessionExpanded(true)}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+                  >
+                    Load more stories
+                  </button>
+                </div>
+              )}
+
               {isRefreshing && (
                 <div className="flex justify-center py-4">
                   <LoadingSpinner size="sm" className="text-gray-400" />

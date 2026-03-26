@@ -3,23 +3,30 @@
 import { useState } from 'react'
 import { clsx } from 'clsx'
 import { formatDistanceToNow } from 'date-fns'
-import type { Article } from '@/types'
+import type { Article, DepthMode, FeedbackType } from '@/types'
 import SentimentBadge from './SentimentBadge'
+import BiasBadge from './BiasBadge'
+import FeedbackMenu from './FeedbackMenu'
 import { getEmojiForSource } from '@/lib/news-sources'
 
 interface ArticleCardProps {
   article: Article
+  depthMode?: DepthMode
   onMarkRead: (id: string) => void
   onToggleSave: (id: string) => void
+  onFeedback?: (id: string, feedback: FeedbackType) => void
 }
 
 export default function ArticleCard({
   article,
+  depthMode = 'skim',
   onMarkRead,
   onToggleSave,
+  onFeedback,
 }: ArticleCardProps) {
   const [isSaved, setIsSaved] = useState(article.isSaved)
   const [isRead, setIsRead] = useState(article.isRead)
+  const [hidden, setHidden] = useState(false)
 
   function handleClick() {
     if (!isRead) {
@@ -35,11 +42,25 @@ export default function ArticleCard({
     onToggleSave(article.id)
   }
 
+  function handleFeedback(feedback: FeedbackType) {
+    onFeedback?.(article.id, feedback)
+    if (feedback === 'hide-source') {
+      setHidden(true)
+    }
+  }
+
+  if (hidden) return null
+
   const timeAgo = formatDistanceToNow(new Date(article.publishedAt), {
     addSuffix: true,
   })
 
-  const displayText = article.aiSummary || article.description
+  // Depth mode: skim = 1-line description, deep = full AI summary
+  const displayText = depthMode === 'deep'
+    ? (article.aiSummary || article.description)
+    : article.description
+
+  const textClamp = depthMode === 'deep' ? 'line-clamp-4' : 'line-clamp-2'
 
   return (
     <article
@@ -51,10 +72,11 @@ export default function ArticleCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          {/* Source and time */}
+          {/* Source row */}
           <div className="mb-1.5 flex items-center gap-1.5 text-xs text-gray-400">
             <span>{getEmojiForSource(article.source)}</span>
             <span className="font-medium text-gray-500">{article.source}</span>
+            <BiasBadge source={article.source} />
             <span>·</span>
             <span>{timeAgo}</span>
           </div>
@@ -64,41 +86,55 @@ export default function ArticleCard({
             {article.title}
           </h3>
 
-          {/* Description */}
+          {/* Description / AI Summary */}
           {displayText && (
-            <p className="line-clamp-2 text-xs leading-relaxed text-gray-500">
+            <p className={clsx('text-xs leading-relaxed text-gray-500', textClamp)}>
               {displayText}
+            </p>
+          )}
+
+          {/* Deep mode: "Why am I seeing this?" */}
+          {depthMode === 'deep' && (
+            <p className="mt-1.5 text-[10px] text-gray-300">
+              From {article.source} · {article.category} · {article.sentiment} tone
             </p>
           )}
 
           {/* Footer */}
           <div className="mt-2 flex items-center justify-between">
             <SentimentBadge sentiment={article.sentiment} />
-            <button
-              onClick={handleSave}
-              className={clsx(
-                'flex h-8 w-8 items-center justify-center rounded-full transition-colors',
-                isSaved
-                  ? 'text-blue-600'
-                  : 'text-gray-300 hover:text-gray-400'
-              )}
-              aria-label={isSaved ? 'Remove bookmark' : 'Bookmark article'}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill={isSaved ? 'currentColor' : 'none'}
-                stroke="currentColor"
-                strokeWidth={1.5}
-                className="h-5 w-5"
+            <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+              <FeedbackMenu
+                articleId={article.id}
+                source={article.source}
+                onFeedback={handleFeedback}
+              />
+              <button
+                onClick={handleSave}
+                className={clsx(
+                  'flex h-8 w-8 items-center justify-center rounded-full transition-colors',
+                  isSaved
+                    ? 'text-blue-600'
+                    : 'text-gray-300 hover:text-gray-400'
+                )}
+                aria-label={isSaved ? 'Remove bookmark' : 'Bookmark article'}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
-                />
-              </svg>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill={isSaved ? 'currentColor' : 'none'}
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  className="h-5 w-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 

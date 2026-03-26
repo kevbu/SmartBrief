@@ -1,5 +1,9 @@
 export type SentimentType = 'positive' | 'neutral' | 'negative'
 export type CategoryType = 'technology' | 'science' | 'business' | 'world' | 'positive'
+export type MoodPreset = 'balanced' | 'constructive' | 'hard-news'
+export type DepthMode = 'skim' | 'deep'
+export type BiasType = 'left' | 'center-left' | 'center' | 'center-right' | 'right'
+export type FeedbackType = 'more-like-this' | 'less-like-this' | 'too-negative' | 'off-topic' | 'hide-source'
 
 export interface Article {
   id: string
@@ -38,6 +42,11 @@ export interface UserPreferences {
   negativeRatio: number
   enabledCategories: string[]
   refreshIntervalMins: number
+  moodPreset: MoodPreset
+  avoidTopics: string[]
+  hiddenSources: string[]
+  sessionSize: number
+  depthMode: DepthMode
 }
 
 export interface AppState {
@@ -95,6 +104,7 @@ export interface NewsSource {
   url: string
   category: CategoryType
   logoEmoji: string
+  bias: BiasType
 }
 
 export interface Category {
@@ -114,4 +124,21 @@ export interface RawArticle {
   source: string
   sourceUrl: string | null
   category: CategoryType
+}
+
+export interface ArticleFeedback {
+  id: string
+  articleId: string
+  feedback: FeedbackType
+  source?: string | null
+  createdAt: Date | string
+}
+
+export interface RecapStats {
+  totalRead: number
+  topicMix: Record<string, number>
+  sentimentMix: { positive: number; neutral: number; negative: number }
+  sourceMix: Record<string, number>
+  avgSentimentScore: number
+  periodDays: number
 }

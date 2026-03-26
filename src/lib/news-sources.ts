@@ -1,4 +1,4 @@
-import type { NewsSource, Category, CategoryType } from '@/types'
+import type { NewsSource, Category, CategoryType, BiasType } from '@/types'
 
 export const NEWS_SOURCES: NewsSource[] = [
   // Technology & AI
@@ -8,6 +8,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://techcrunch.com/feed/',
     category: 'technology',
     logoEmoji: '🚀',
+    bias: 'center-left',
   },
   {
     id: 'ars-technica',
@@ -15,6 +16,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://feeds.arstechnica.com/arstechnica/index',
     category: 'technology',
     logoEmoji: '💻',
+    bias: 'center',
   },
   {
     id: 'wired',
@@ -22,6 +24,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.wired.com/feed/rss',
     category: 'technology',
     logoEmoji: '⚡',
+    bias: 'center-left',
   },
   {
     id: 'mit-tech-review',
@@ -29,6 +32,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.technologyreview.com/feed/',
     category: 'technology',
     logoEmoji: '🔬',
+    bias: 'center',
   },
 
   // Science & Health
@@ -38,6 +42,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.sciencedaily.com/rss/all.xml',
     category: 'science',
     logoEmoji: '🧬',
+    bias: 'center',
   },
   {
     id: 'new-scientist',
@@ -45,6 +50,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.newscientist.com/feed/home/',
     category: 'science',
     logoEmoji: '🔭',
+    bias: 'center',
   },
   {
     id: 'medical-xpress',
@@ -52,6 +58,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://medicalxpress.com/rss-feed/',
     category: 'science',
     logoEmoji: '🏥',
+    bias: 'center',
   },
 
   // Business & Finance
@@ -61,6 +68,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',
     category: 'business',
     logoEmoji: '📈',
+    bias: 'center-right',
   },
   {
     id: 'fortune',
@@ -68,6 +76,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://fortune.com/feed/',
     category: 'business',
     logoEmoji: '💼',
+    bias: 'center-right',
   },
   {
     id: 'investopedia',
@@ -75,6 +84,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_headline',
     category: 'business',
     logoEmoji: '💰',
+    bias: 'center',
   },
 
   // World & Politics
@@ -84,6 +94,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://feeds.bbci.co.uk/news/rss.xml',
     category: 'world',
     logoEmoji: '🌍',
+    bias: 'center',
   },
   {
     id: 'npr-news',
@@ -91,6 +102,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://feeds.npr.org/1001/rss.xml',
     category: 'world',
     logoEmoji: '📻',
+    bias: 'center-left',
   },
   {
     id: 'al-jazeera',
@@ -98,6 +110,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.aljazeera.com/xml/rss/all.xml',
     category: 'world',
     logoEmoji: '🌐',
+    bias: 'center-left',
   },
 
   // Good News / Positive
@@ -107,6 +120,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.goodnewsnetwork.org/feed/',
     category: 'positive',
     logoEmoji: '✨',
+    bias: 'center',
   },
   {
     id: 'positive-news',
@@ -114,6 +128,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.positive.news/feed/',
     category: 'positive',
     logoEmoji: '🌟',
+    bias: 'center',
   },
 ]
 
@@ -171,4 +186,11 @@ export function getEmojiForSource(sourceName: string): string {
     (s) => s.name.toLowerCase() === sourceName.toLowerCase()
   )
   return source?.logoEmoji ?? '📰'
+}
+
+export function getBiasForSource(sourceName: string): BiasType {
+  const source = NEWS_SOURCES.find(
+    (s) => s.name.toLowerCase() === sourceName.toLowerCase()
+  )
+  return source?.bias ?? 'center'
 }

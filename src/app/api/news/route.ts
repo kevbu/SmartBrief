@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { applyBalanceFilter, computeBalanceStats } from '@/lib/balance-filter'
 import { ensureDefaultPreferences } from '@/lib/news-aggregator'
-import type { Article, TopStory, UserPreferences, NewsApiResponse } from '@/types'
+import type { Article, TopStory, UserPreferences, NewsApiResponse, MoodPreset, DepthMode } from '@/types'
 
 export async function GET(request: Request) {
   try {
@@ -18,15 +18,27 @@ export async function GET(request: Request) {
       where: { id: 'default' },
     })
 
+    const avoidTopics = prefsDb?.avoidTopics
+      ? prefsDb.avoidTopics.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
+      : []
+    const hiddenSources = prefsDb?.hiddenSources
+      ? prefsDb.hiddenSources.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+      : []
+
     const preferences: UserPreferences = {
       id: prefsDb?.id ?? 'default',
       positiveRatio: prefsDb?.positiveRatio ?? 0.4,
       neutralRatio: prefsDb?.neutralRatio ?? 0.4,
       negativeRatio: prefsDb?.negativeRatio ?? 0.2,
       enabledCategories: prefsDb?.enabledCategories
-        ? prefsDb.enabledCategories.split(',')
+        ? prefsDb.enabledCategories.split(',').filter(Boolean)
         : ['technology', 'science', 'business', 'world', 'positive'],
       refreshIntervalMins: prefsDb?.refreshIntervalMins ?? 60,
+      moodPreset: (prefsDb?.moodPreset as MoodPreset) ?? 'balanced',
+      avoidTopics,
+      hiddenSources,
+      sessionSize: prefsDb?.sessionSize ?? 15,
+      depthMode: (prefsDb?.depthMode as DepthMode) ?? 'skim',
     }
 
     // Get app state
@@ -38,10 +50,23 @@ export async function GET(request: Request) {
       take: 500,
     })
 
-    const articles: Article[] = allArticles.map((a) => ({
+    let articles: Article[] = allArticles.map((a) => ({
       ...a,
       sentiment: a.sentiment as 'positive' | 'neutral' | 'negative',
     }))
+
+    // Apply avoidTopics and hiddenSources filters
+    if (hiddenSources.length > 0) {
+      articles = articles.filter(
+        (a) => !hiddenSources.includes(a.source.toLowerCase())
+      )
+    }
+    if (avoidTopics.length > 0) {
+      articles = articles.filter((a) => {
+        const text = `${a.title} ${a.description ?? ''}`.toLowerCase()
+        return !avoidTopics.some((topic) => text.includes(topic))
+      })
+    }
 
     // Apply balance filter
     const filteredArticles = applyBalanceFilter(articles, preferences, category)

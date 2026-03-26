@@ -38,17 +38,32 @@ model TopStory {
 }
 
 model UserPreferences {
-  id                String   @id @default("default")
-  positiveRatio     Float    @default(0.4)
-  neutralRatio      Float    @default(0.4)
-  negativeRatio     Float    @default(0.2)
-  enabledCategories String   @default("technology,science,business,world,positive")
-  refreshIntervalMins Int    @default(60)
-  updatedAt         DateTime @updatedAt
+  id                  String   @id @default("default")
+  positiveRatio       Float    @default(0.4)
+  neutralRatio        Float    @default(0.4)
+  negativeRatio       Float    @default(0.2)
+  enabledCategories   String   @default("technology,science,business,world,positive")
+  refreshIntervalMins Int      @default(60)
+  moodPreset          String   @default("balanced")
+  avoidTopics         String   @default("")
+  hiddenSources       String   @default("")
+  sessionSize         Int      @default(15)
+  depthMode           String   @default("skim")
+  updatedAt           DateTime @updatedAt
 }
 
 model AppState {
   id            String    @id @default("default")
   lastRefreshed DateTime?
   updatedAt     DateTime  @updatedAt
+}
+
+model ArticleFeedback {
+  id        String   @id @default(cuid())
+  articleId String
+  feedback  String
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
 }
