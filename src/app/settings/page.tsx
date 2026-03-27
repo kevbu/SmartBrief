@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import type { UserPreferences, MoodPreset } from '@/types'
+import { NEWS_SOURCES } from '@/lib/news-sources'
 
 const REFRESH_OPTIONS = [
   { value: 30,  label: '30 min' },
@@ -27,6 +28,24 @@ const MOOD_PRESETS: { value: MoodPreset; emoji: string; label: string; desc: str
 
 const SESSION_OPTIONS = [5, 10, 15, 20, 30]
 
+// Group sources by category for display
+const SOURCE_CATEGORY_LABELS: Record<string, string> = {
+  technology: '🤖 Technology',
+  science: '🧪 Science & Health',
+  business: '📊 Business',
+  world: '🌍 World & Politics',
+  positive: '✨ Bright Spots',
+}
+
+function getSourcesByCategory() {
+  const groups: Record<string, typeof NEWS_SOURCES> = {}
+  for (const source of NEWS_SOURCES) {
+    if (!groups[source.category]) groups[source.category] = []
+    groups[source.category].push(source)
+  }
+  return groups
+}
+
 export default function SettingsPage() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -47,6 +66,10 @@ export default function SettingsPage() {
   const [sessionSize, setSessionSize] = useState(15)
   const [depthMode,   setDepthMode]   = useState<'skim' | 'deep'>('skim')
   const [hiddenSources, setHiddenSources] = useState<string[]>([])
+  const [enabledSources, setEnabledSources] = useState<string[]>([])
+
+  // Debounce timer for sources
+  const sourcesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -67,6 +90,7 @@ export default function SettingsPage() {
           setSessionSize(prefs.sessionSize ?? 15)
           setDepthMode(prefs.depthMode ?? 'skim')
           setHiddenSources(prefs.hiddenSources ?? [])
+          setEnabledSources(prefs.enabledSources ?? [])
         }
       } catch (err) {
         console.error(err)
@@ -121,6 +145,93 @@ export default function SettingsPage() {
     setHiddenSources((prev) => prev.filter((s) => s !== source))
   }
 
+  function isSourceEnabled(sourceId: string) {
+    // Empty enabledSources means all are enabled
+    return enabledSources.length === 0 || enabledSources.includes(sourceId)
+  }
+
+  function toggleSource(sourceId: string) {
+    setEnabledSources((prev) => {
+      let next: string[]
+      if (prev.length === 0) {
+        // All currently enabled; toggling one off means all except this one
+        next = NEWS_SOURCES.map((s) => s.id).filter((id) => id !== sourceId)
+      } else if (prev.includes(sourceId)) {
+        next = prev.filter((id) => id !== sourceId)
+      } else {
+        next = [...prev, sourceId]
+      }
+      // If all are enabled, normalize to empty array
+      if (next.length === NEWS_SOURCES.length) next = []
+
+      // Debounce save
+      if (sourcesDebounceRef.current) clearTimeout(sourcesDebounceRef.current)
+      sourcesDebounceRef.current = setTimeout(() => {
+        fetch('/api/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabledSources: next }),
+        }).catch(console.error)
+      }, 800)
+
+      return next
+    })
+  }
+
+  function selectAllInCategory(categoryId: string) {
+    const categorySourceIds = NEWS_SOURCES
+      .filter((s) => s.category === categoryId)
+      .map((s) => s.id)
+
+    setEnabledSources((prev) => {
+      let next: string[]
+      if (prev.length === 0) {
+        // All enabled already, nothing to do
+        next = prev
+      } else {
+        // Add all from this category
+        const merged = new Set([...prev, ...categorySourceIds])
+        next = Array.from(merged)
+        if (next.length === NEWS_SOURCES.length) next = []
+      }
+
+      if (sourcesDebounceRef.current) clearTimeout(sourcesDebounceRef.current)
+      sourcesDebounceRef.current = setTimeout(() => {
+        fetch('/api/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabledSources: next }),
+        }).catch(console.error)
+      }, 800)
+
+      return next
+    })
+  }
+
+  function deselectAllInCategory(categoryId: string) {
+    const categorySourceIds = NEWS_SOURCES
+      .filter((s) => s.category === categoryId)
+      .map((s) => s.id)
+
+    setEnabledSources((prev) => {
+      let current = prev.length === 0
+        ? NEWS_SOURCES.map((s) => s.id)
+        : [...prev]
+      const next = current.filter((id) => !categorySourceIds.includes(id))
+
+      if (sourcesDebounceRef.current) clearTimeout(sourcesDebounceRef.current)
+      sourcesDebounceRef.current = setTimeout(() => {
+        fetch('/api/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabledSources: next }),
+        }).catch(console.error)
+      }, 800)
+
+      return next
+    })
+  }
+
   async function handleSave() {
     setIsSaving(true)
     setError(null)
@@ -142,6 +253,7 @@ export default function SettingsPage() {
         hiddenSources,
         sessionSize,
         depthMode,
+        enabledSources,
       }
 
       const res = await fetch('/api/preferences', {
@@ -163,6 +275,15 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleSignOut() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch {
+      // ignore
+    }
+    window.location.href = '/login'
+  }
+
   if (isLoading || !preferences) {
     return (
       <div className="flex justify-center py-12">
@@ -170,6 +291,8 @@ export default function SettingsPage() {
       </div>
     )
   }
+
+  const sourcesByCategory = getSourcesByCategory()
 
   return (
     <div>
@@ -262,6 +385,70 @@ export default function SettingsPage() {
                     <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                   </div>
                 </button>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* News Sources */}
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">News Sources</h2>
+          <p className="mb-3 text-xs text-gray-500">Toggle individual sources on or off</p>
+          <div className="space-y-4">
+            {Object.entries(sourcesByCategory).map(([categoryId, sources]) => {
+              const allEnabled = sources.every((s) => isSourceEnabled(s.id))
+              return (
+                <div key={categoryId}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      {SOURCE_CATEGORY_LABELS[categoryId] ?? categoryId}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => selectAllInCategory(categoryId)}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Select all
+                      </button>
+                      <span className="text-xs text-gray-300">·</span>
+                      <button
+                        onClick={() => deselectAllInCategory(categoryId)}
+                        className="text-xs text-gray-400 hover:underline"
+                      >
+                        Deselect all
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    {sources.map((source) => {
+                      const enabled = isSourceEnabled(source.id)
+                      return (
+                        <button
+                          key={source.id}
+                          onClick={() => toggleSource(source.id)}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50"
+                        >
+                          <span className="flex items-center gap-2 text-sm text-gray-700">
+                            <span>{source.logoEmoji}</span>
+                            <span className="font-medium">{source.name}</span>
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                                source.language === 'de'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-gray-100 text-gray-500'
+                              }`}
+                            >
+                              {source.language.toUpperCase()}
+                            </span>
+                          </span>
+                          <div className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                            <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               )
             })}
           </div>
@@ -404,6 +591,17 @@ export default function SettingsPage() {
             'Save Preferences'
           )}
         </button>
+
+        {/* Sign out */}
+        <div className="pt-2">
+          <div className="mb-4 border-t border-gray-100" />
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center justify-center rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   )

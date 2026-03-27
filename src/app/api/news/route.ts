@@ -39,6 +39,9 @@ export async function GET(request: Request) {
       hiddenSources,
       sessionSize: prefsDb?.sessionSize ?? 15,
       depthMode: (prefsDb?.depthMode as DepthMode) ?? 'skim',
+      enabledSources: prefsDb?.enabledSources
+        ? prefsDb.enabledSources.split(',').filter(Boolean)
+        : [],
     }
 
     // Get app state

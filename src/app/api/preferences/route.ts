@@ -20,6 +20,7 @@ function dbToPreferences(prefs: {
   hiddenSources: string
   sessionSize: number
   depthMode: string
+  enabledSources: string
 }): UserPreferences {
   return {
     id: prefs.id,
@@ -39,6 +40,9 @@ function dbToPreferences(prefs: {
       : [],
     sessionSize: prefs.sessionSize ?? 15,
     depthMode: (prefs.depthMode as DepthMode) ?? 'skim',
+    enabledSources: prefs.enabledSources
+      ? prefs.enabledSources.split(',').filter(Boolean)
+      : [],
   }
 }
 
@@ -132,6 +136,10 @@ export async function PUT(request: Request) {
         : body.hiddenSources
     if (body.sessionSize !== undefined) updateData.sessionSize = body.sessionSize
     if (body.depthMode !== undefined) updateData.depthMode = body.depthMode
+    if (body.enabledSources !== undefined)
+      updateData.enabledSources = Array.isArray(body.enabledSources)
+        ? body.enabledSources.join(',')
+        : body.enabledSources
 
     const prefs = await db.userPreferences.upsert({
       where: { id: 'default' },
@@ -147,6 +155,7 @@ export async function PUT(request: Request) {
         hiddenSources: (updateData.hiddenSources as string) ?? '',
         sessionSize: (updateData.sessionSize as number) ?? 15,
         depthMode: (updateData.depthMode as string) ?? 'skim',
+        enabledSources: (updateData.enabledSources as string) ?? '',
       },
       update: updateData,
     })

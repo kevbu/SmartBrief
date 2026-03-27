@@ -85,19 +85,28 @@ async function fetchSourceFeed(
     })
 }
 
-export async function fetchAllFeeds(): Promise<RawArticle[]> {
+export async function fetchAllFeeds(enabledSourceIds?: string[]): Promise<RawArticle[]> {
+  const sources =
+    enabledSourceIds && enabledSourceIds.length > 0
+      ? NEWS_SOURCES.filter((s) => enabledSourceIds.includes(s.id))
+      : NEWS_SOURCES
+
   const results = await Promise.allSettled(
-    NEWS_SOURCES.map((source) => fetchSourceFeed(source))
+    sources.map((source) => fetchSourceFeed(source))
   )
 
   const articles: RawArticle[] = []
+
+  const usedSources = enabledSourceIds && enabledSourceIds.length > 0
+    ? NEWS_SOURCES.filter((s) => enabledSourceIds.includes(s.id))
+    : NEWS_SOURCES
 
   results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       articles.push(...result.value)
     } else {
       console.error(
-        `Failed to fetch ${NEWS_SOURCES[index].name}: ${result.reason}`
+        `Failed to fetch ${usedSources[index].name}: ${result.reason}`
       )
     }
   })

@@ -5,6 +5,7 @@ import Header from '@/components/Header'
 import TopicTabs from '@/components/TopicTabs'
 import TopStoryCard from '@/components/TopStoryCard'
 import ArticleCard from '@/components/ArticleCard'
+import ArticleDetail from '@/components/ArticleDetail'
 import BalanceMeter from '@/components/BalanceMeter'
 import SessionProgress from '@/components/SessionProgress'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -33,6 +34,11 @@ function SkeletonCard() {
   )
 }
 
+type SelectedItem =
+  | { type: 'article'; data: Article }
+  | { type: 'topStory'; data: TopStory }
+  | null
+
 export default function HomePage() {
   const [articles, setArticles] = useState<Article[]>([])
   const [topStories, setTopStories] = useState<TopStory[]>([])
@@ -44,6 +50,7 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState('all')
   const [hasApiKey, setHasApiKey] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<SelectedItem>(null)
 
   // Session state: how many articles in the current briefing session
   const [sessionLimit, setSessionLimit] = useState(15)
@@ -190,9 +197,60 @@ export default function HomePage() {
     ? articles
     : articles.slice(0, sessionLimit)
 
-  const showTopStories =
-    activeCategory === 'all' && topStories.length > 0 && !isLoading
   const showSessionProgress = articles.length > 0 && !isLoading
+
+  // Build unified feed: interleave TopStoryCards and ArticleCards
+  function buildUnifiedFeed(articleList: Article[], stories: TopStory[]) {
+    // Filter stories by category if not 'all'
+    const filteredStories =
+      activeCategory === 'all'
+        ? stories
+        : stories.filter((s) => s.category === activeCategory)
+
+    // Build a map: articleId -> topStory (first cluster that claims this article)
+    const articleToStory = new Map<string, TopStory>()
+    for (const story of filteredStories) {
+      let ids: string[] = []
+      try {
+        ids = typeof story.articleIds === 'string'
+          ? (JSON.parse(story.articleIds) as string[])
+          : story.articleIds
+      } catch {
+        ids = []
+      }
+      for (const aid of ids) {
+        if (!articleToStory.has(aid)) {
+          articleToStory.set(aid, story)
+        }
+      }
+    }
+
+    // Track which stories have already been inserted
+    const insertedStories = new Set<string>()
+
+    type FeedItem =
+      | { kind: 'article'; article: Article }
+      | { kind: 'topStory'; story: TopStory }
+
+    const feed: FeedItem[] = []
+
+    for (const article of articleList) {
+      const story = articleToStory.get(article.id)
+      if (story) {
+        if (!insertedStories.has(story.id)) {
+          insertedStories.add(story.id)
+          feed.push({ kind: 'topStory', story })
+        }
+        // Skip subsequent articles from the same cluster
+      } else {
+        feed.push({ kind: 'article', article })
+      }
+    }
+
+    return feed
+  }
+
+  const unifiedFeed = buildUnifiedFeed(displayedArticles, topStories)
 
   return (
     <div>
@@ -232,15 +290,6 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          {/* Top Stories */}
-          {showTopStories && (
-            <section className="pt-4">
-              {topStories.slice(0, 3).map((story) => (
-                <TopStoryCard key={story.id} story={story} />
-              ))}
-            </section>
-          )}
-
           {/* Balance Meter */}
           {balanceStats && balanceStats.total > 0 && (
             <div className="pt-3">
@@ -318,16 +367,25 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="pt-1">
-              {displayedArticles.map((article) => (
-                <ArticleCard
-                  key={article.id}
-                  article={article}
-                  depthMode={depthMode}
-                  onMarkRead={handleMarkRead}
-                  onToggleSave={handleToggleSave}
-                  onFeedback={handleFeedback}
-                />
-              ))}
+              {unifiedFeed.map((item) =>
+                item.kind === 'topStory' ? (
+                  <TopStoryCard
+                    key={`ts-${item.story.id}`}
+                    story={item.story}
+                    onSelect={(ts) => setSelectedItem({ type: 'topStory', data: ts })}
+                  />
+                ) : (
+                  <ArticleCard
+                    key={item.article.id}
+                    article={item.article}
+                    depthMode={depthMode}
+                    onMarkRead={handleMarkRead}
+                    onToggleSave={handleToggleSave}
+                    onFeedback={handleFeedback}
+                    onSelect={(article) => setSelectedItem({ type: 'article', data: article })}
+                  />
+                )
+              )}
 
               {/* Show session complete / load more when not expanded */}
               {!sessionExpanded && articles.length > sessionLimit && (
@@ -356,6 +414,16 @@ export default function HomePage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Article Detail Modal */}
+      {selectedItem && (
+        <ArticleDetail
+          article={selectedItem.type === 'article' ? selectedItem.data : null}
+          topStory={selectedItem.type === 'topStory' ? selectedItem.data : null}
+          allArticles={articles}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   )

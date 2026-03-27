@@ -9,6 +9,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'technology',
     logoEmoji: '🚀',
     bias: 'center-left',
+    language: 'en',
   },
   {
     id: 'ars-technica',
@@ -17,6 +18,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'technology',
     logoEmoji: '💻',
     bias: 'center',
+    language: 'en',
   },
   {
     id: 'wired',
@@ -25,6 +27,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'technology',
     logoEmoji: '⚡',
     bias: 'center-left',
+    language: 'en',
   },
   {
     id: 'mit-tech-review',
@@ -33,6 +36,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'technology',
     logoEmoji: '🔬',
     bias: 'center',
+    language: 'en',
   },
 
   // Science & Health
@@ -43,6 +47,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'science',
     logoEmoji: '🧬',
     bias: 'center',
+    language: 'en',
   },
   {
     id: 'new-scientist',
@@ -51,6 +56,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'science',
     logoEmoji: '🔭',
     bias: 'center',
+    language: 'en',
   },
   {
     id: 'medical-xpress',
@@ -59,6 +65,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'science',
     logoEmoji: '🏥',
     bias: 'center',
+    language: 'en',
   },
 
   // Business & Finance
@@ -69,6 +76,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'business',
     logoEmoji: '📈',
     bias: 'center-right',
+    language: 'en',
   },
   {
     id: 'fortune',
@@ -77,6 +85,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'business',
     logoEmoji: '💼',
     bias: 'center-right',
+    language: 'en',
   },
   {
     id: 'investopedia',
@@ -85,6 +94,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'business',
     logoEmoji: '💰',
     bias: 'center',
+    language: 'en',
   },
 
   // World & Politics
@@ -95,6 +105,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'world',
     logoEmoji: '🌍',
     bias: 'center',
+    language: 'en',
   },
   {
     id: 'npr-news',
@@ -103,6 +114,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'world',
     logoEmoji: '📻',
     bias: 'center-left',
+    language: 'en',
   },
   {
     id: 'al-jazeera',
@@ -111,6 +123,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'world',
     logoEmoji: '🌐',
     bias: 'center-left',
+    language: 'en',
   },
 
   // Good News / Positive
@@ -121,6 +134,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'positive',
     logoEmoji: '✨',
     bias: 'center',
+    language: 'en',
   },
   {
     id: 'positive-news',
@@ -129,7 +143,17 @@ export const NEWS_SOURCES: NewsSource[] = [
     category: 'positive',
     logoEmoji: '🌟',
     bias: 'center',
+    language: 'en',
   },
+
+  // German Sources
+  { id: 'spiegel', name: 'Der Spiegel', url: 'https://www.spiegel.de/schlagzeilen/index.rss', category: 'world', logoEmoji: '🪞', bias: 'center-left', language: 'de' },
+  { id: 'zeit', name: 'Die Zeit', url: 'https://newsfeed.zeit.de/index', category: 'world', logoEmoji: '🕰️', bias: 'center-left', language: 'de' },
+  { id: 'tagesschau', name: 'Tagesschau', url: 'https://www.tagesschau.de/xml/rss2', category: 'world', logoEmoji: '📺', bias: 'center', language: 'de' },
+  { id: 'heise', name: 'Heise Online', url: 'https://www.heise.de/rss/heise.rdf', category: 'technology', logoEmoji: '💻', bias: 'center', language: 'de' },
+  { id: 't3n', name: 't3n', url: 'https://t3n.de/rss.xml', category: 'technology', logoEmoji: '🚀', bias: 'center', language: 'de' },
+  { id: 'handelsblatt', name: 'Handelsblatt', url: 'https://www.handelsblatt.com/contentexport/feed/top-themen', category: 'business', logoEmoji: '📈', bias: 'center-right', language: 'de' },
+  { id: 'sueddeutsche', name: 'Süddeutsche Zeitung', url: 'https://rss.sueddeutsche.de/rss/Topthemen', category: 'world', logoEmoji: '🗞️', bias: 'center-left', language: 'de' },
 ]
 
 export const CATEGORIES: Category[] = [

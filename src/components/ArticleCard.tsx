@@ -15,6 +15,7 @@ interface ArticleCardProps {
   onMarkRead: (id: string) => void
   onToggleSave: (id: string) => void
   onFeedback?: (id: string, feedback: FeedbackType) => void
+  onSelect?: (article: Article) => void
 }
 
 export default function ArticleCard({
@@ -23,6 +24,7 @@ export default function ArticleCard({
   onMarkRead,
   onToggleSave,
   onFeedback,
+  onSelect,
 }: ArticleCardProps) {
   const [isSaved, setIsSaved] = useState(article.isSaved)
   const [isRead, setIsRead] = useState(article.isRead)
@@ -33,7 +35,11 @@ export default function ArticleCard({
       setIsRead(true)
       onMarkRead(article.id)
     }
-    window.open(article.url, '_blank', 'noopener,noreferrer')
+    if (onSelect) {
+      onSelect(article)
+    } else {
+      window.open(article.url, '_blank', 'noopener,noreferrer')
+    }
   }
 
   function handleSave(e: React.MouseEvent) {
