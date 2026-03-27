@@ -21,6 +21,7 @@ model Article {
   sentiment      String   @default("neutral")
   sentimentScore Float    @default(0)
   aiSummary      String?
+  aiBullets      String?
   isRead         Boolean  @default(false)
   isSaved        Boolean  @default(false)
   fetchedAt      DateTime @default(now())
@@ -49,6 +50,7 @@ model UserPreferences {
   hiddenSources       String   @default("")
   sessionSize         Int      @default(15)
   depthMode           String   @default("skim")
+  enabledSources      String   @default("")
   updatedAt           DateTime @updatedAt
 }
 

@@ -47,6 +47,7 @@ export interface UserPreferences {
   hiddenSources: string[]
   sessionSize: number
   depthMode: DepthMode
+  enabledSources: string[]
 }
 
 export interface AppState {
@@ -105,6 +106,7 @@ export interface NewsSource {
   category: CategoryType
   logoEmoji: string
   bias: BiasType
+  language: 'en' | 'de'
 }
 
 export interface Category {

@@ -7,9 +7,15 @@ export async function refreshNews(): Promise<{
   articleCount: number
   lastRefreshed: Date
 }> {
+  // 0. Get user preferences to check enabled sources
+  const userPrefs = await db.userPreferences.findUnique({ where: { id: 'default' } })
+  const enabledSourceIds = userPrefs?.enabledSources
+    ? userPrefs.enabledSources.split(',').filter(Boolean)
+    : []
+
   // 1. Fetch all RSS feeds in parallel
   console.log('Fetching RSS feeds...')
-  const rawArticles = await fetchAllFeeds()
+  const rawArticles = await fetchAllFeeds(enabledSourceIds)
   console.log(`Fetched ${rawArticles.length} raw articles`)
 
   // 2. Deduplicate by URL (upsert to DB)

@@ -100,7 +100,7 @@ export async function generateTopStories(
   // Take recent articles with good descriptions
   const recentArticles = articles
     .filter((a) => a.description || a.aiSummary)
-    .slice(0, 60)
+    .slice(0, 100)
 
   if (recentArticles.length < 3) {
     return []
@@ -113,7 +113,7 @@ export async function generateTopStories(
     )
     .join('\n')
 
-  const prompt = `Based on these recent news articles, identify 3-5 top story clusters where multiple sources are covering similar topics. For each cluster, write a Perplexity-style aggregated summary.
+  const prompt = `Based on these recent news articles, identify up to 20 top story clusters where multiple sources are covering similar topics. For each cluster, write a Perplexity-style aggregated summary.
 
 Return ONLY a JSON array with this format (no other text):
 [
