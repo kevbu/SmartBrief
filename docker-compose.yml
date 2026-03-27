@@ -14,11 +14,8 @@ services:
       - ./data:/app/data
     restart: unless-stopped
     networks:
-      - npm_network
+      - nginx-proxy-manager_default
 
 networks:
-  # The external network created by Nginx Proxy Manager.
-  # Run `docker network ls` on your VPS to confirm the exact name
-  # (common alternatives: nginx-proxy-manager_default, proxy, npm_default).
-  npm_network:
+  nginx-proxy-manager_default:
     external: true
