@@ -2,12 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import ArticleCard from '@/components/ArticleCard'
+import ArticleDetail from '@/components/ArticleDetail'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import type { Article } from '@/types'
+
+type SelectedItem =
+  | { type: 'article'; data: Article }
+  | null
 
 export default function SavedPage() {
   const [articles, setArticles] = useState<Article[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedItem, setSelectedItem] = useState<SelectedItem>(null)
 
   useEffect(() => {
     async function fetchSaved() {
@@ -67,9 +73,20 @@ export default function SavedPage() {
               article={article}
               onMarkRead={handleMarkRead}
               onToggleSave={handleToggleSave}
+              onSelect={(a) => setSelectedItem({ type: 'article', data: a })}
             />
           ))}
         </div>
+      )}
+
+      {/* Article Detail Modal */}
+      {selectedItem && (
+        <ArticleDetail
+          article={selectedItem.type === 'article' ? selectedItem.data : null}
+          topStory={null}
+          allArticles={articles}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   )

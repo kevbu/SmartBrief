@@ -3,6 +3,7 @@ import type { TopStory } from '@/types'
 
 interface TopStoryCardProps {
   story: TopStory
+  onSelect?: (topStory: TopStory) => void
 }
 
 const sentimentGradients = {
@@ -20,14 +21,20 @@ const categoryLabels: Record<string, string> = {
   positive: '✨ Bright Spots',
 }
 
-export default function TopStoryCard({ story }: TopStoryCardProps) {
+export default function TopStoryCard({ story, onSelect }: TopStoryCardProps) {
   const gradient =
     sentimentGradients[story.sentiment] ?? sentimentGradients.neutral
 
+  function handleClick() {
+    onSelect?.(story)
+  }
+
   return (
     <div
+      onClick={handleClick}
       className={clsx(
         'mx-4 mb-3 rounded-xl bg-gradient-to-br p-4 shadow-sm',
+        onSelect ? 'cursor-pointer active:scale-[0.99] transition-all' : '',
         gradient
       )}
     >
