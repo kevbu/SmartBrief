@@ -67,6 +67,10 @@ export default function SettingsPage() {
   const [depthMode,   setDepthMode]   = useState<'skim' | 'deep'>('skim')
   const [hiddenSources, setHiddenSources] = useState<string[]>([])
   const [enabledSources, setEnabledSources] = useState<string[]>([])
+  const [activeWeights, setActiveWeights] = useState<number | null>(null)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
+  const [resetDone, setResetDone] = useState(false)
 
   // Debounce timer for sources
   const sourcesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -91,6 +95,11 @@ export default function SettingsPage() {
           setDepthMode(prefs.depthMode ?? 'skim')
           setHiddenSources(prefs.hiddenSources ?? [])
           setEnabledSources(prefs.enabledSources ?? [])
+        }
+        const wRes = await fetch('/api/settings/personalisation')
+        if (wRes.ok) {
+          const wData = await wRes.json()
+          setActiveWeights(wData.activeWeights ?? 0)
         }
       } catch (err) {
         console.error(err)
@@ -118,18 +127,21 @@ export default function SettingsPage() {
     const remaining = 100 - value
     if (changed === 'positive') {
       const total = neutralRatio + negativeRatio || 1
-      setNeutralRatio(Math.round((neutralRatio / total) * remaining))
-      setNegativeRatio(Math.round((negativeRatio / total) * remaining))
+      const roundedNeutral = Math.round((neutralRatio / total) * remaining)
+      setNeutralRatio(roundedNeutral)
+      setNegativeRatio(remaining - roundedNeutral)
       setPositiveRatio(value)
     } else if (changed === 'neutral') {
       const total = positiveRatio + negativeRatio || 1
-      setPositiveRatio(Math.round((positiveRatio / total) * remaining))
-      setNegativeRatio(Math.round((negativeRatio / total) * remaining))
+      const roundedPositive = Math.round((positiveRatio / total) * remaining)
+      setPositiveRatio(roundedPositive)
+      setNegativeRatio(remaining - roundedPositive)
       setNeutralRatio(value)
     } else {
       const total = positiveRatio + neutralRatio || 1
-      setPositiveRatio(Math.round((positiveRatio / total) * remaining))
-      setNeutralRatio(Math.round((neutralRatio / total) * remaining))
+      const roundedPositive = Math.round((positiveRatio / total) * remaining)
+      setPositiveRatio(roundedPositive)
+      setNeutralRatio(remaining - roundedPositive)
       setNegativeRatio(value)
     }
     setMoodPreset('balanced') // custom = reset preset label
@@ -230,6 +242,23 @@ export default function SettingsPage() {
 
       return next
     })
+  }
+
+  async function handleResetPersonalisation() {
+    setIsResetting(true)
+    try {
+      const res = await fetch('/api/settings/personalisation', { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to reset')
+      setActiveWeights(0)
+      setShowResetConfirm(false)
+      setResetDone(true)
+      setTimeout(() => setResetDone(false), 3000)
+    } catch (err) {
+      console.error(err)
+      setError('Failed to reset personalisation')
+    } finally {
+      setIsResetting(false)
+    }
   }
 
   async function handleSave() {
@@ -492,6 +521,56 @@ export default function SettingsPage() {
             </div>
           </section>
         )}
+
+        {/* Personalisation */}
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Personalisation</h2>
+          <p className="mb-3 text-xs text-gray-500">
+            SmartBrief learns from your feedback to surface sources you prefer
+          </p>
+          <p className="mb-4 text-sm text-gray-600">
+            {activeWeights === null
+              ? 'Loading…'
+              : activeWeights === 0
+              ? 'No personalisation active — give feedback on articles to get started.'
+              : `Personalisation active — tracking ${activeWeights} source ${activeWeights === 1 ? 'preference' : 'preferences'}.`}
+          </p>
+          {resetDone && (
+            <p className="mb-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
+              Personalisation reset. Your next briefing starts fresh.
+            </p>
+          )}
+          {!showResetConfirm ? (
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              disabled={activeWeights === 0}
+              className="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Reset personalisation
+            </button>
+          ) : (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="mb-3 text-xs text-red-700">
+                This will delete all learned source preferences. Your feedback history is kept but won&apos;t be re-applied.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleResetPersonalisation}
+                  disabled={isResetting}
+                  className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+                >
+                  {isResetting ? 'Resetting…' : 'Yes, reset'}
+                </button>
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* Session & Reading */}
         <section className="rounded-xl bg-white p-4 shadow-sm">

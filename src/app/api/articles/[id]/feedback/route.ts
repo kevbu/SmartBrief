@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { upsertSourceWeight } from '@/lib/source-weights'
 import type { FeedbackType } from '@/types'
 
 const VALID_FEEDBACK: FeedbackType[] = [
@@ -24,6 +25,15 @@ export async function POST(
       )
     }
 
+    // These feedback types affect source weights — source is required
+    const WEIGHT_SIGNALS: FeedbackType[] = ['more-like-this', 'less-like-this', 'too-negative']
+    if (WEIGHT_SIGNALS.includes(body.feedback as FeedbackType) && !body.source) {
+      return NextResponse.json(
+        { success: false, error: 'source is required for this feedback type' },
+        { status: 400 }
+      )
+    }
+
     // Record the feedback
     await db.articleFeedback.create({
       data: {
@@ -32,6 +42,9 @@ export async function POST(
         source: body.source ?? null,
       },
     })
+
+    // Update source weight based on feedback signal
+    await upsertSourceWeight(body.source, body.feedback)
 
     // If hiding a source, add it to hiddenSources in preferences
     if (body.feedback === 'hide-source' && body.source) {

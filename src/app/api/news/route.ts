@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { applyBalanceFilter, computeBalanceStats } from '@/lib/balance-filter'
 import { ensureDefaultPreferences } from '@/lib/news-aggregator'
+import { applyDecayAndGetWeightMap, effectiveNegativeRatio } from '@/lib/source-weights'
 import type { Article, TopStory, UserPreferences, NewsApiResponse, MoodPreset, DepthMode } from '@/types'
 
 export async function GET(request: Request) {
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
       ? prefsDb.hiddenSources.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
       : []
 
-    const preferences: UserPreferences = {
+    let preferences: UserPreferences = {
       id: prefsDb?.id ?? 'default',
       positiveRatio: prefsDb?.positiveRatio ?? 0.4,
       neutralRatio: prefsDb?.neutralRatio ?? 0.4,
@@ -42,6 +43,23 @@ export async function GET(request: Request) {
       enabledSources: prefsDb?.enabledSources
         ? prefsDb.enabledSources.split(',').filter(Boolean)
         : [],
+    }
+
+    // Load source weights (applies lazy decay, persists changes)
+    const weightMap = await applyDecayAndGetWeightMap()
+
+    // Compute effective negative ratio from TOO_NEGATIVE signals
+    const negRatio = await effectiveNegativeRatio(preferences.negativeRatio)
+    if (negRatio !== preferences.negativeRatio) {
+      // Redistribute the freed capacity proportionally to positive/neutral
+      const freed = preferences.negativeRatio - negRatio
+      const posNeutralTotal = preferences.positiveRatio + preferences.neutralRatio || 1
+      preferences = {
+        ...preferences,
+        negativeRatio: negRatio,
+        positiveRatio: preferences.positiveRatio + freed * (preferences.positiveRatio / posNeutralTotal),
+        neutralRatio: preferences.neutralRatio + freed * (preferences.neutralRatio / posNeutralTotal),
+      }
     }
 
     // Get app state
@@ -71,8 +89,8 @@ export async function GET(request: Request) {
       })
     }
 
-    // Apply balance filter
-    const filteredArticles = applyBalanceFilter(articles, preferences, category)
+    // Apply balance filter with source weights
+    const filteredArticles = applyBalanceFilter(articles, preferences, category, weightMap)
     const paginatedArticles = filteredArticles.slice(
       (page - 1) * pageSize,
       page * pageSize
