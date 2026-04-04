@@ -5,6 +5,93 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import type { UserPreferences, MoodPreset } from '@/types'
 import { NEWS_SOURCES } from '@/lib/news-sources'
 
+/**
+ * Newsletter ingest status widget — fetches config state from the server
+ * and displays the webhook URL + setup instructions.
+ * Defined inline because it needs to be a client component alongside the
+ * rest of the settings page.
+ */
+function NewsletterIngestSection() {
+  const [status, setStatus] = useState<'loading' | 'not-configured' | 'ready'>('loading')
+  const [webhookUrl, setWebhookUrl] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/ingest/newsletter/status')
+      .then((r) => r.json())
+      .then((data: { configured: boolean; webhookUrl?: string }) => {
+        if (data.configured && data.webhookUrl) {
+          setWebhookUrl(data.webhookUrl)
+          setStatus('ready')
+        } else {
+          setStatus('not-configured')
+        }
+      })
+      .catch(() => setStatus('not-configured'))
+  }, [])
+
+  function copyUrl() {
+    navigator.clipboard.writeText(webhookUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  if (status === 'loading') {
+    return <p className="text-xs text-gray-400">Loading…</p>
+  }
+
+  if (status === 'not-configured') {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+        <p className="font-semibold mb-1">Not configured</p>
+        <p>
+          Add <code className="rounded bg-amber-100 px-1 font-mono">NEWSLETTER_INGEST_SECRET=your-secret</code> to
+          your <code className="rounded bg-amber-100 px-1 font-mono">.env</code> / docker-compose environment,
+          then restart the app.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-gray-700">Webhook URL</p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 truncate rounded-lg bg-gray-100 px-3 py-2 font-mono text-[11px] text-gray-700">
+            {webhookUrl}
+          </code>
+          <button
+            onClick={copyUrl}
+            className="flex-shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+          >
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
+      </div>
+      <div className="rounded-lg bg-gray-50 p-3 text-xs leading-relaxed text-gray-600 space-y-1.5">
+        <p className="font-semibold text-gray-700">Setup</p>
+        <p>
+          <strong>Mailgun:</strong> Create an Inbound Route that forwards to this URL.
+          Add <code className="rounded bg-gray-200 px-1 font-mono">X-Ingest-Secret: your-secret</code> as a custom header.
+        </p>
+        <p>
+          <strong>n8n / Zapier:</strong> Use an email trigger node and POST to this URL with
+          JSON fields: <code className="rounded bg-gray-200 px-1 font-mono">from</code>,{' '}
+          <code className="rounded bg-gray-200 px-1 font-mono">subject</code>,{' '}
+          <code className="rounded bg-gray-200 px-1 font-mono">html</code>.
+          Include your secret in the <code className="rounded bg-gray-200 px-1 font-mono">X-Ingest-Secret</code> header.
+        </p>
+        <p>
+          <strong>Gmail filter:</strong> Forward matching emails to your Mailgun address,
+          which routes here automatically.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 const REFRESH_OPTIONS = [
   { value: 30,  label: '30 min' },
   { value: 60,  label: '1 hour' },
@@ -570,6 +657,17 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+        </section>
+
+        {/* Newsletter Ingestion */}
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Newsletter Ingestion</h2>
+          <p className="mb-3 text-xs text-gray-500">
+            Forward newsletters to SmartBrief via a webhook. Set{' '}
+            <code className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-700">NEWSLETTER_INGEST_SECRET</code>{' '}
+            in your environment to enable this.
+          </p>
+          <NewsletterIngestSection />
         </section>
 
         {/* Session & Reading */}
