@@ -11,6 +11,23 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-smartbrief-secret}
       - SMARTBRIEF_PASSWORD=${SMARTBRIEF_PASSWORD:-}
+      # Newsletter ingestion — webhook (optional)
+      - NEWSLETTER_INGEST_SECRET=${NEWSLETTER_INGEST_SECRET:-}
+      # Newsletter ingestion — IMAP polling (optional)
+      # IMAP_HOST=imap.gmail.com
+      # IMAP_PORT=993
+      # IMAP_USER=you@gmail.com
+      # IMAP_PASS=your-app-specific-password
+      # IMAP_FOLDER=SmartBrief
+      # IMAP_TLS=true
+      # IMAP_POLL_INTERVAL_MINS=30
+      - IMAP_HOST=${IMAP_HOST:-}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_USER=${IMAP_USER:-}
+      - IMAP_PASS=${IMAP_PASS:-}
+      - IMAP_FOLDER=${IMAP_FOLDER:-SmartBrief}
+      - IMAP_TLS=${IMAP_TLS:-true}
+      - IMAP_POLL_INTERVAL_MINS=${IMAP_POLL_INTERVAL_MINS:-30}
     volumes:
       - ./data:/app/data
     restart: unless-stopped

@@ -48,6 +48,10 @@ export interface UserPreferences {
   sessionSize: number
   depthMode: DepthMode
   enabledSources: string[]
+  pushEnabled: boolean
+  quietHoursEnabled: boolean
+  quietHoursStart: string
+  quietHoursEnd: string
 }
 
 export interface AppState {
@@ -65,6 +69,19 @@ export interface BalanceStats {
   negativePercent: number
 }
 
+export interface CatchUpContext {
+  active: boolean
+  gapDays: number
+  windowStart: string
+  articleCount: number
+}
+
+export interface SessionOpenResponse {
+  previousOpenedAt: string | null
+  gapHours: number
+  catchUpMode: boolean
+}
+
 export interface NewsApiResponse {
   articles: Article[]
   topStories: TopStory[]
@@ -72,6 +89,7 @@ export interface NewsApiResponse {
   preferences: UserPreferences
   lastRefreshed: string | null
   hasApiKey: boolean
+  catchUpContext?: CatchUpContext
 }
 
 export interface RefreshApiResponse {
@@ -97,6 +115,7 @@ export interface SentimentResult {
   id: string
   sentiment: SentimentType
   score: number
+  severity?: string
 }
 
 export interface NewsSource {

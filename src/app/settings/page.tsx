@@ -5,6 +5,206 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import type { UserPreferences, MoodPreset } from '@/types'
 import { NEWS_SOURCES } from '@/lib/news-sources'
 
+interface ImapStatus {
+  configured: boolean
+  host?: string
+  user?: string
+  folder?: string
+  pollIntervalMins?: number
+  lastPoll?: string | null
+  newsletterCount?: number
+}
+
+/** IMAP polling sub-section inside the Newsletter Ingestion settings card. */
+function ImapSection() {
+  const [status, setStatus] = useState<ImapStatus | null>(null)
+  const [fetching, setFetching] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
+  const [fetchResult, setFetchResult] = useState<string | null>(null)
+
+  function load() {
+    fetch('/api/ingest/newsletter/imap/status')
+      .then((r) => r.json())
+      .then((d: ImapStatus) => setStatus(d))
+      .catch(() => setStatus({ configured: false }))
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function handleTest() {
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const r = await fetch('/api/ingest/newsletter/imap/test', { method: 'POST' })
+      const d = await r.json() as { ok: boolean; error?: string }
+      setTestResult(d)
+    } catch {
+      setTestResult({ ok: false, error: 'Request failed' })
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  async function handleFetchNow() {
+    setFetching(true)
+    setFetchResult(null)
+    try {
+      const r = await fetch('/api/ingest/newsletter/imap', { method: 'POST' })
+      const d = await r.json() as { success: boolean; ingested?: number; skipped?: number; error?: string }
+      if (d.success) {
+        setFetchResult(`Done — ${d.ingested} new, ${d.skipped} skipped`)
+        load() // refresh last-poll timestamp
+      } else {
+        setFetchResult(`Error: ${d.error ?? 'unknown'}`)
+      }
+    } catch {
+      setFetchResult('Request failed')
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  if (!status) return <p className="text-xs text-gray-400">Loading…</p>
+
+  if (!status.configured) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1.5">
+        <p className="font-semibold">IMAP polling — not configured</p>
+        <p>Add these to your <code className="rounded bg-amber-100 px-1 font-mono">.env</code> / docker-compose and restart:</p>
+        <pre className="rounded bg-amber-100 p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
+{`IMAP_HOST=imap.gmail.com
+IMAP_PORT=993
+IMAP_USER=you@gmail.com
+IMAP_PASS=your-app-password
+IMAP_FOLDER=SmartBrief
+IMAP_POLL_INTERVAL_MINS=30`}
+        </pre>
+        <p className="text-amber-700">
+          For Gmail, create a label called <strong>SmartBrief</strong> and an app-specific password
+          at <em>myaccount.google.com › Security › App passwords</em>.
+        </p>
+      </div>
+    )
+  }
+
+  const lastPollLabel = status.lastPoll
+    ? new Date(status.lastPoll).toLocaleString()
+    : 'Never'
+
+  return (
+    <div className="space-y-3">
+      {/* Status card */}
+      <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2.5 text-xs space-y-1">
+        <p className="font-semibold text-green-800">IMAP polling active</p>
+        <p className="text-green-700">{status.user} · {status.host} · folder: <strong>{status.folder}</strong></p>
+        <p className="text-green-700">Interval: every {status.pollIntervalMins} min · Last polled: {lastPollLabel}</p>
+        {typeof status.newsletterCount === 'number' && (
+          <p className="text-green-700">{status.newsletterCount} newsletter article{status.newsletterCount === 1 ? '' : 's'} ingested</p>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleFetchNow}
+          disabled={fetching}
+          className="flex-1 rounded-lg bg-blue-600 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+        >
+          {fetching ? 'Fetching…' : 'Fetch now'}
+        </button>
+        <button
+          onClick={handleTest}
+          disabled={testing}
+          className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-60"
+        >
+          {testing ? 'Testing…' : 'Test connection'}
+        </button>
+      </div>
+
+      {/* Feedback */}
+      {fetchResult && (
+        <p className={`rounded-lg px-3 py-2 text-xs ${fetchResult.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+          {fetchResult}
+        </p>
+      )}
+      {testResult && (
+        <p className={`rounded-lg px-3 py-2 text-xs ${testResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          {testResult.ok ? 'Connection successful' : `Connection failed: ${testResult.error}`}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Webhook sub-section — forwards emails to SmartBrief via an automation tool. */
+function WebhookSection() {
+  const [status, setStatus] = useState<'loading' | 'not-configured' | 'ready'>('loading')
+  const [webhookUrl, setWebhookUrl] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/ingest/newsletter/status')
+      .then((r) => r.json())
+      .then((data: { configured: boolean; webhookUrl?: string }) => {
+        if (data.configured && data.webhookUrl) {
+          setWebhookUrl(data.webhookUrl)
+          setStatus('ready')
+        } else {
+          setStatus('not-configured')
+        }
+      })
+      .catch(() => setStatus('not-configured'))
+  }, [])
+
+  function copyUrl() {
+    navigator.clipboard.writeText(webhookUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  if (status === 'loading') return null
+
+  if (status === 'not-configured') {
+    return (
+      <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
+        <p className="font-semibold text-gray-700 mb-1">Webhook (n8n / Zapier / Mailgun)</p>
+        <p>
+          Set <code className="rounded bg-gray-200 px-1 font-mono">NEWSLETTER_INGEST_SECRET</code> in your environment
+          to enable a POST webhook endpoint for automation tools.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700">Webhook (n8n / Zapier / Mailgun)</p>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 truncate rounded-lg bg-gray-100 px-3 py-2 font-mono text-[11px] text-gray-700">
+          {webhookUrl}
+        </code>
+        <button
+          onClick={copyUrl}
+          className="flex-shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function NewsletterIngestSection() {
+  return (
+    <div className="space-y-4">
+      <ImapSection />
+      <WebhookSection />
+    </div>
+  )
+}
+
 const REFRESH_OPTIONS = [
   { value: 30,  label: '30 min' },
   { value: 60,  label: '1 hour' },
@@ -67,6 +267,19 @@ export default function SettingsPage() {
   const [depthMode,   setDepthMode]   = useState<'skim' | 'deep'>('skim')
   const [hiddenSources, setHiddenSources] = useState<string[]>([])
   const [enabledSources, setEnabledSources] = useState<string[]>([])
+  const [activeWeights, setActiveWeights] = useState<number | null>(null)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
+  const [resetDone, setResetDone] = useState(false)
+
+  // Push notification state
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(false)
+  const [quietHoursStart, setQuietHoursStart] = useState('22:00')
+  const [quietHoursEnd, setQuietHoursEnd] = useState('07:00')
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('default')
+  const [pushRegistering, setPushRegistering] = useState(false)
+  const [pushError, setPushError] = useState<string | null>(null)
 
   // Debounce timer for sources
   const sourcesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -91,6 +304,21 @@ export default function SettingsPage() {
           setDepthMode(prefs.depthMode ?? 'skim')
           setHiddenSources(prefs.hiddenSources ?? [])
           setEnabledSources(prefs.enabledSources ?? [])
+          setPushEnabled(prefs.pushEnabled ?? false)
+          setQuietHoursEnabled(prefs.quietHoursEnabled ?? false)
+          setQuietHoursStart(prefs.quietHoursStart ?? '22:00')
+          setQuietHoursEnd(prefs.quietHoursEnd ?? '07:00')
+        }
+        // Check current browser push permission status
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          setPushPermission(Notification.permission)
+        } else {
+          setPushPermission('unsupported')
+        }
+        const wRes = await fetch('/api/settings/personalisation')
+        if (wRes.ok) {
+          const wData = await wRes.json()
+          setActiveWeights(wData.activeWeights ?? 0)
         }
       } catch (err) {
         console.error(err)
@@ -118,18 +346,21 @@ export default function SettingsPage() {
     const remaining = 100 - value
     if (changed === 'positive') {
       const total = neutralRatio + negativeRatio || 1
-      setNeutralRatio(Math.round((neutralRatio / total) * remaining))
-      setNegativeRatio(Math.round((negativeRatio / total) * remaining))
+      const roundedNeutral = Math.round((neutralRatio / total) * remaining)
+      setNeutralRatio(roundedNeutral)
+      setNegativeRatio(remaining - roundedNeutral)
       setPositiveRatio(value)
     } else if (changed === 'neutral') {
       const total = positiveRatio + negativeRatio || 1
-      setPositiveRatio(Math.round((positiveRatio / total) * remaining))
-      setNegativeRatio(Math.round((negativeRatio / total) * remaining))
+      const roundedPositive = Math.round((positiveRatio / total) * remaining)
+      setPositiveRatio(roundedPositive)
+      setNegativeRatio(remaining - roundedPositive)
       setNeutralRatio(value)
     } else {
       const total = positiveRatio + neutralRatio || 1
-      setPositiveRatio(Math.round((positiveRatio / total) * remaining))
-      setNeutralRatio(Math.round((neutralRatio / total) * remaining))
+      const roundedPositive = Math.round((positiveRatio / total) * remaining)
+      setPositiveRatio(roundedPositive)
+      setNeutralRatio(remaining - roundedPositive)
       setNegativeRatio(value)
     }
     setMoodPreset('balanced') // custom = reset preset label
@@ -232,6 +463,23 @@ export default function SettingsPage() {
     })
   }
 
+  async function handleResetPersonalisation() {
+    setIsResetting(true)
+    try {
+      const res = await fetch('/api/settings/personalisation', { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to reset')
+      setActiveWeights(0)
+      setShowResetConfirm(false)
+      setResetDone(true)
+      setTimeout(() => setResetDone(false), 3000)
+    } catch (err) {
+      console.error(err)
+      setError('Failed to reset personalisation')
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
   async function handleSave() {
     setIsSaving(true)
     setError(null)
@@ -254,6 +502,10 @@ export default function SettingsPage() {
         sessionSize,
         depthMode,
         enabledSources,
+        pushEnabled,
+        quietHoursEnabled,
+        quietHoursStart,
+        quietHoursEnd,
       }
 
       const res = await fetch('/api/preferences', {
@@ -272,6 +524,63 @@ export default function SettingsPage() {
       setError('Failed to save preferences')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handlePushToggle(enable: boolean) {
+    setPushRegistering(true)
+    setPushError(null)
+    try {
+      if (enable) {
+        // Request permission first
+        const permission = await Notification.requestPermission()
+        setPushPermission(permission)
+        if (permission !== 'granted') {
+          setPushError('Permission denied. Enable notifications in browser settings.')
+          setPushRegistering(false)
+          return
+        }
+        // Register service worker and subscribe
+        const reg = await navigator.serviceWorker.register('/sw.js')
+        const vapidRes = await fetch('/api/push/vapid-public')
+        const { publicKey } = await vapidRes.json() as { publicKey: string }
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: publicKey,
+        })
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sub.toJSON()),
+        })
+        setPushEnabled(true)
+      } else {
+        // Unsubscribe and remove from DB
+        const reg = await navigator.serviceWorker.getRegistration('/sw.js')
+        if (reg) {
+          const sub = await reg.pushManager.getSubscription()
+          if (sub) {
+            await fetch('/api/push/subscribe', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ endpoint: sub.endpoint }),
+            })
+            await sub.unsubscribe()
+          }
+        }
+        setPushEnabled(false)
+      }
+      // Persist preference change immediately
+      await fetch('/api/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pushEnabled: enable }),
+      })
+    } catch (err) {
+      console.error(err)
+      setPushError('Failed to update push notifications. Try again.')
+    } finally {
+      setPushRegistering(false)
     }
   }
 
@@ -493,6 +802,67 @@ export default function SettingsPage() {
           </section>
         )}
 
+        {/* Personalisation */}
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Personalisation</h2>
+          <p className="mb-3 text-xs text-gray-500">
+            SmartBrief learns from your feedback to surface sources you prefer
+          </p>
+          <p className="mb-4 text-sm text-gray-600">
+            {activeWeights === null
+              ? 'Loading…'
+              : activeWeights === 0
+              ? 'No personalisation active — give feedback on articles to get started.'
+              : `Personalisation active — tracking ${activeWeights} source ${activeWeights === 1 ? 'preference' : 'preferences'}.`}
+          </p>
+          {resetDone && (
+            <p className="mb-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
+              Personalisation reset. Your next briefing starts fresh.
+            </p>
+          )}
+          {!showResetConfirm ? (
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              disabled={activeWeights === 0}
+              className="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Reset personalisation
+            </button>
+          ) : (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="mb-3 text-xs text-red-700">
+                This will delete all learned source preferences. Your feedback history is kept but won&apos;t be re-applied.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleResetPersonalisation}
+                  disabled={isResetting}
+                  className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+                >
+                  {isResetting ? 'Resetting…' : 'Yes, reset'}
+                </button>
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Newsletter Ingestion */}
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Newsletter Ingestion</h2>
+          <p className="mb-3 text-xs text-gray-500">
+            Forward newsletters to SmartBrief via a webhook. Set{' '}
+            <code className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-700">NEWSLETTER_INGEST_SECRET</code>{' '}
+            in your environment to enable this.
+          </p>
+          <NewsletterIngestSection />
+        </section>
+
         {/* Session & Reading */}
         <section className="rounded-xl bg-white p-4 shadow-sm">
           <h2 className="mb-1 text-base font-semibold text-gray-900">Reading Session</h2>
@@ -531,6 +901,93 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+        </section>
+
+        {/* Push Notifications */}
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Push Notifications</h2>
+          <p className="mb-3 text-xs text-gray-500">
+            Get alerted for critical breaking news only — verified across 3+ sources. Fires rarely by design.
+          </p>
+          {pushPermission === 'unsupported' ? (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              Push notifications are not supported in this browser. Install SmartBrief to your home screen on iOS 16.4+ or use a modern desktop browser.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {/* Master toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">Enable push notifications</p>
+                  {pushPermission === 'denied' && (
+                    <p className="text-xs text-red-500 mt-0.5">
+                      Permission denied — re-enable in browser settings.
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => handlePushToggle(!pushEnabled)}
+                  disabled={pushRegistering || pushPermission === 'denied'}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                    pushEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                  role="switch"
+                  aria-checked={pushEnabled}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                      pushEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {pushError && (
+                <p className="text-xs text-red-500">{pushError}</p>
+              )}
+
+              {/* Quiet hours — only shown when push is enabled */}
+              {pushEnabled && (
+                <div className="rounded-lg bg-gray-50 p-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-700">Quiet hours</p>
+                    <button
+                      onClick={() => setQuietHoursEnabled((v) => !v)}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                        quietHoursEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                      }`}
+                      role="switch"
+                      aria-checked={quietHoursEnabled}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${
+                          quietHoursEnabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {quietHoursEnabled && (
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <label className="text-xs text-gray-500 w-10">From</label>
+                      <input
+                        type="time"
+                        value={quietHoursStart}
+                        onChange={(e) => setQuietHoursStart(e.target.value)}
+                        className="rounded border border-gray-200 px-2 py-1 text-xs"
+                      />
+                      <label className="text-xs text-gray-500 w-6">to</label>
+                      <input
+                        type="time"
+                        value={quietHoursEnd}
+                        onChange={(e) => setQuietHoursEnd(e.target.value)}
+                        className="rounded border border-gray-200 px-2 py-1 text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Auto-Refresh */}

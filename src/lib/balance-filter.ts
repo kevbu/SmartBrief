@@ -1,10 +1,27 @@
 import type { Article, UserPreferences, BalanceStats } from '@/types'
 
+function makeSorter(weightMap: Record<string, number>) {
+  return (a: Article, b: Article) => {
+    const scoreA = a.sentimentScore * (weightMap[a.source] ?? 1.0)
+    const scoreB = b.sentimentScore * (weightMap[b.source] ?? 1.0)
+    if (scoreB !== scoreA) return scoreB - scoreA
+    // Tie-break by recency
+    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  }
+}
+
+const byDate = (a: Article, b: Article) =>
+  new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+
 export function applyBalanceFilter(
   articles: Article[],
   preferences: UserPreferences,
-  category?: string
+  category?: string,
+  weightMap: Record<string, number> = {}
 ): Article[] {
+  const hasWeights = Object.keys(weightMap).length > 0
+  const sort = hasWeights ? makeSorter(weightMap) : byDate
+
   // Filter by category first
   let filtered = articles
   if (category && category !== 'all') {
@@ -12,34 +29,21 @@ export function applyBalanceFilter(
       // Bright Spots: only positive sentiment articles
       return articles
         .filter((a) => a.sentiment === 'positive')
-        .sort(
-          (a, b) =>
-            new Date(b.publishedAt).getTime() -
-            new Date(a.publishedAt).getTime()
-        )
+        .sort(sort)
     }
     filtered = articles.filter((a) => a.category === category)
   }
 
-  // Split into sentiment buckets, sorted by date
+  // Split into sentiment buckets, sorted by adjusted score (or date when no weights)
   const positive = filtered
     .filter((a) => a.sentiment === 'positive')
-    .sort(
-      (a, b) =>
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-    )
+    .sort(sort)
   const neutral = filtered
     .filter((a) => a.sentiment === 'neutral')
-    .sort(
-      (a, b) =>
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-    )
+    .sort(sort)
   const negative = filtered
     .filter((a) => a.sentiment === 'negative')
-    .sort(
-      (a, b) =>
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-    )
+    .sort(sort)
 
   const total = filtered.length
   if (total === 0) return []
@@ -75,11 +79,7 @@ export function applyBalanceFilter(
     ...fillers,
   ]
 
-  // Sort combined result by date
-  return all.sort(
-    (a, b) =>
-      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-  )
+  return all.sort(sort)
 }
 
 export function computeBalanceStats(articles: Article[]): BalanceStats {
