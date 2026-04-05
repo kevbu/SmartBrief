@@ -80,8 +80,13 @@ export default function ArticleCard({
         <div className="min-w-0 flex-1">
           {/* Source row */}
           <div className="mb-1.5 flex items-center gap-1.5 text-xs text-gray-400">
-            <span>{getEmojiForSource(article.source)}</span>
+            <span>{article.url.startsWith('newsletter://') ? '✉️' : getEmojiForSource(article.source)}</span>
             <span className="font-medium text-gray-500">{article.source}</span>
+            {article.url.startsWith('newsletter://') && (
+              <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-500">
+                newsletter
+              </span>
+            )}
             <BiasBadge source={article.source} />
             <span>·</span>
             <span>{timeAgo}</span>

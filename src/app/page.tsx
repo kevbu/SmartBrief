@@ -9,12 +9,14 @@ import ArticleDetail from '@/components/ArticleDetail'
 import BalanceMeter from '@/components/BalanceMeter'
 import SessionProgress from '@/components/SessionProgress'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import CatchUpBanner from '@/components/CatchUpBanner'
 import type {
   Article,
   TopStory,
   BalanceStats,
   UserPreferences,
   NewsApiResponse,
+  SessionOpenResponse,
   MoodPreset,
   FeedbackType,
 } from '@/types'
@@ -57,10 +59,21 @@ export default function HomePage() {
   const [articlesRead, setArticlesRead] = useState(0)
   const [sessionExpanded, setSessionExpanded] = useState(false)
 
-  const fetchNews = useCallback(async (category: string) => {
+  // Catch-up mode
+  const [catchUpMode, setCatchUpMode] = useState(false)
+  const [catchUpGapDays, setCatchUpGapDays] = useState(0)
+  const [catchUpSince, setCatchUpSince] = useState<string | null>(null)
+  const [catchUpDismissed, setCatchUpDismissed] = useState(false)
+
+  const fetchNews = useCallback(async (category: string, mode: 'standard' | 'catchup' = 'standard', since?: string) => {
     try {
       setError(null)
-      const res = await fetch(`/api/news?category=${category}`)
+      const params = new URLSearchParams({ category })
+      if (mode === 'catchup' && since) {
+        params.set('mode', 'catchup')
+        params.set('since', since)
+      }
+      const res = await fetch(`/api/news?${params}`)
       if (!res.ok) throw new Error('Failed to fetch news')
       const data: NewsApiResponse = await res.json()
       setArticles(data.articles)
@@ -96,6 +109,14 @@ export default function HomePage() {
     }
   }, [isRefreshing, fetchNews, activeCategory])
 
+  const handleDismissCatchUp = useCallback(async () => {
+    setCatchUpDismissed(true)
+    setCatchUpMode(false)
+    setArticlesRead(0)
+    setSessionExpanded(false)
+    await fetchNews(activeCategory, 'standard')
+  }, [fetchNews, activeCategory])
+
   const handleMoodChange = useCallback(async (preset: MoodPreset) => {
     try {
       const res = await fetch('/api/preferences', {
@@ -118,6 +139,28 @@ export default function HomePage() {
     async function init() {
       setIsLoading(true)
       try {
+        // Record this session open and determine catch-up mode
+        let isCatchUp = false
+        let sinceTs: string | null = null
+        let gapDays = 0
+        try {
+          const sessionRes = await fetch('/api/session/open', { method: 'POST' })
+          if (sessionRes.ok) {
+            const sessionData: SessionOpenResponse = await sessionRes.json()
+            isCatchUp = sessionData.catchUpMode
+            sinceTs = sessionData.previousOpenedAt
+            gapDays = Math.ceil(sessionData.gapHours / 24)
+          }
+        } catch (e) {
+          console.error('Session open failed:', e)
+        }
+
+        if (isCatchUp && sinceTs) {
+          setCatchUpMode(true)
+          setCatchUpSince(sinceTs)
+          setCatchUpGapDays(gapDays)
+        }
+
         const res = await fetch('/api/news?category=all')
         if (res.ok) {
           const data: NewsApiResponse = await res.json()
@@ -145,7 +188,11 @@ export default function HomePage() {
             }
           }
 
-          await fetchNews(activeCategory)
+          if (isCatchUp && sinceTs) {
+            await fetchNews(activeCategory, 'catchup', sinceTs)
+          } else {
+            await fetchNews(activeCategory)
+          }
         }
       } catch (err) {
         console.error('Init error:', err)
@@ -161,7 +208,11 @@ export default function HomePage() {
   // Fetch when category changes
   useEffect(() => {
     if (!isLoading) {
-      fetchNews(activeCategory)
+      if (catchUpMode && catchUpSince) {
+        fetchNews(activeCategory, 'catchup', catchUpSince)
+      } else {
+        fetchNews(activeCategory)
+      }
       setArticlesRead(0)
       setSessionExpanded(false)
     }
@@ -297,6 +348,16 @@ export default function HomePage() {
             </div>
           )}
 
+          {/* Catch-up banner */}
+          {catchUpMode && !catchUpDismissed && (
+            <div className="pt-3">
+              <CatchUpBanner
+                gapDays={catchUpGapDays}
+                onDismiss={handleDismissCatchUp}
+              />
+            </div>
+          )}
+
           {/* Topic Tabs */}
           <TopicTabs
             activeCategory={activeCategory}
@@ -345,6 +406,7 @@ export default function HomePage() {
               current={articlesRead}
               total={sessionLimit}
               onLoadMore={() => setSessionExpanded(true)}
+              isCatchUp={catchUpMode && !catchUpDismissed}
             />
           )}
 
@@ -392,10 +454,12 @@ export default function HomePage() {
                 <div className="mx-4 mb-4 mt-2 rounded-2xl bg-emerald-50 p-5 text-center">
                   <div className="mb-2 text-3xl">🌟</div>
                   <h3 className="mb-1 text-base font-bold text-emerald-800">
-                    Briefing complete!
+                    {catchUpMode && !catchUpDismissed ? "You're caught up!" : 'Briefing complete!'}
                   </h3>
                   <p className="mb-3 text-xs text-emerald-600">
-                    You&apos;ve read your {sessionLimit}-story brief. Great job staying informed.
+                    {catchUpMode && !catchUpDismissed
+                      ? `Top stories from the last ${catchUpGapDays} days. Great job catching up.`
+                      : `You've read your ${sessionLimit}-story brief. Great job staying informed.`}
                   </p>
                   <button
                     onClick={() => setSessionExpanded(true)}

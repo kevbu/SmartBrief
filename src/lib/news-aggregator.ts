@@ -80,6 +80,7 @@ export async function refreshNews(): Promise<{
           data: {
             sentiment: result.sentiment,
             sentimentScore: result.score,
+            severity: result.severity ?? 'routine',
           },
         })
       } catch (err) {

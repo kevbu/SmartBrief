@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { applyBalanceFilter, computeBalanceStats } from '@/lib/balance-filter'
 import { ensureDefaultPreferences } from '@/lib/news-aggregator'
 import { applyDecayAndGetWeightMap, effectiveNegativeRatio } from '@/lib/source-weights'
+import { scoreByImportance } from '@/lib/importance-score'
 import type { Article, TopStory, UserPreferences, NewsApiResponse, MoodPreset, DepthMode } from '@/types'
 
 export async function GET(request: Request) {
@@ -13,6 +14,9 @@ export async function GET(request: Request) {
     const category = searchParams.get('category') || 'all'
     const page = parseInt(searchParams.get('page') || '1', 10)
     const pageSize = parseInt(searchParams.get('pageSize') || '50', 10)
+    const mode = searchParams.get('mode') === 'catchup' ? 'catchup' : 'standard'
+    const sinceParam = searchParams.get('since')
+    const sinceDate = mode === 'catchup' && sinceParam ? new Date(sinceParam) : null
 
     // Get preferences
     const prefsDb = await db.userPreferences.findUnique({
@@ -43,6 +47,10 @@ export async function GET(request: Request) {
       enabledSources: prefsDb?.enabledSources
         ? prefsDb.enabledSources.split(',').filter(Boolean)
         : [],
+      pushEnabled: prefsDb?.pushEnabled ?? false,
+      quietHoursEnabled: prefsDb?.quietHoursEnabled ?? false,
+      quietHoursStart: prefsDb?.quietHoursStart ?? '22:00',
+      quietHoursEnd: prefsDb?.quietHoursEnd ?? '07:00',
     }
 
     // Load source weights (applies lazy decay, persists changes)
@@ -65,8 +73,9 @@ export async function GET(request: Request) {
     // Get app state
     const appState = await db.appState.findUnique({ where: { id: 'default' } })
 
-    // Get articles
+    // Get articles — for catch-up mode, filter by window start
     const allArticles = await db.article.findMany({
+      where: sinceDate ? { publishedAt: { gte: sinceDate } } : undefined,
       orderBy: { publishedAt: 'desc' },
       take: 500,
     })
@@ -90,11 +99,20 @@ export async function GET(request: Request) {
     }
 
     // Apply balance filter with source weights
-    const filteredArticles = applyBalanceFilter(articles, preferences, category, weightMap)
-    const paginatedArticles = filteredArticles.slice(
-      (page - 1) * pageSize,
-      page * pageSize
-    )
+    const balanceFiltered = applyBalanceFilter(articles, preferences, category, weightMap)
+
+    let paginatedArticles: Article[]
+    if (mode === 'catchup') {
+      // Score by importance, cap at min(20, sessionSize)
+      const catchUpLimit = Math.min(20, preferences.sessionSize)
+      const scored = scoreByImportance(balanceFiltered)
+      paginatedArticles = scored.slice(0, catchUpLimit)
+    } else {
+      paginatedArticles = balanceFiltered.slice(
+        (page - 1) * pageSize,
+        page * pageSize
+      )
+    }
 
     // Get balance stats from ALL articles (not filtered by category)
     const balanceStats = computeBalanceStats(articles)
@@ -137,6 +155,18 @@ export async function GET(request: Request) {
       preferences,
       lastRefreshed: appState?.lastRefreshed?.toISOString() ?? null,
       hasApiKey,
+      ...(mode === 'catchup' && sinceDate
+        ? {
+            catchUpContext: {
+              active: true,
+              gapDays: Math.round(
+                (Date.now() - sinceDate.getTime()) / (1000 * 60 * 60 * 24)
+              ),
+              windowStart: sinceDate.toISOString(),
+              articleCount: paginatedArticles.length,
+            },
+          }
+        : {}),
     }
 
     return NextResponse.json(response)

@@ -1,6 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { Article, SentimentResult, SentimentType, TopStory } from '@/types'
 
+export type SeverityLevel = 'routine' | 'notable' | 'significant' | 'major' | 'critical'
+
+export interface SeverityResult {
+  id: string
+  severity: SeverityLevel
+}
+
 function getClient(): Anthropic | null {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return null
@@ -40,12 +47,14 @@ async function analyzeBatch(
     )
     .join('\n\n')
 
-  const prompt = `Analyze the sentiment of these ${articles.length} news articles. For each article, return:
+  const prompt = `Analyze these ${articles.length} news articles. For each article, return:
 - sentiment: "positive", "neutral", or "negative"
 - score: a float from -1.0 (very negative) to 1.0 (very positive), 0 = neutral
+- severity: urgency level — one of: routine | notable | significant | major | critical
+  (critical = immediate large-scale threat to life, safety, financial systems, or democratic institutions — e.g. active conflict escalation, 7.5+ earthquake in populated area, exchange trading halt, head-of-state death/coup. major = serious but not immediate. significant = newsworthy. notable = mildly interesting. routine = everyday news.)
 
 Return ONLY a JSON array, no other text. Format:
-[{"id": "article_id", "sentiment": "positive|neutral|negative", "score": 0.5}, ...]
+[{"id": "article_id", "sentiment": "positive|neutral|negative", "score": 0.5, "severity": "routine"}, ...]
 
 Articles:
 ${articleList}`
@@ -73,6 +82,7 @@ ${articleList}`
       id: string
       sentiment: string
       score: number
+      severity?: string
     }>
 
     return parsed.map((item) => ({
@@ -81,10 +91,13 @@ ${articleList}`
         ? item.sentiment
         : 'neutral') as SentimentType,
       score: Math.max(-1, Math.min(1, item.score || 0)),
+      severity: (['routine', 'notable', 'significant', 'major', 'critical'].includes(item.severity ?? '')
+        ? item.severity
+        : 'routine') as SeverityLevel,
     }))
   } catch (err) {
     console.error('Sentiment analysis error:', err)
-    return articles.map((a) => ({ id: a.id, sentiment: 'neutral', score: 0 }))
+    return articles.map((a) => ({ id: a.id, sentiment: 'neutral', score: 0, severity: 'routine' as SeverityLevel }))
   }
 }
 

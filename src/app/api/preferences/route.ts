@@ -21,6 +21,10 @@ function dbToPreferences(prefs: {
   sessionSize: number
   depthMode: string
   enabledSources: string
+  pushEnabled: boolean
+  quietHoursEnabled: boolean
+  quietHoursStart: string
+  quietHoursEnd: string
 }): UserPreferences {
   return {
     id: prefs.id,
@@ -43,6 +47,10 @@ function dbToPreferences(prefs: {
     enabledSources: prefs.enabledSources
       ? prefs.enabledSources.split(',').filter(Boolean)
       : [],
+    pushEnabled: prefs.pushEnabled ?? false,
+    quietHoursEnabled: prefs.quietHoursEnabled ?? false,
+    quietHoursStart: prefs.quietHoursStart ?? '22:00',
+    quietHoursEnd: prefs.quietHoursEnd ?? '07:00',
   }
 }
 
@@ -140,6 +148,10 @@ export async function PUT(request: Request) {
       updateData.enabledSources = Array.isArray(body.enabledSources)
         ? body.enabledSources.join(',')
         : body.enabledSources
+    if (body.pushEnabled !== undefined) updateData.pushEnabled = body.pushEnabled
+    if (body.quietHoursEnabled !== undefined) updateData.quietHoursEnabled = body.quietHoursEnabled
+    if (body.quietHoursStart !== undefined) updateData.quietHoursStart = body.quietHoursStart
+    if (body.quietHoursEnd !== undefined) updateData.quietHoursEnd = body.quietHoursEnd
 
     const prefs = await db.userPreferences.upsert({
       where: { id: 'default' },
