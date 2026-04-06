@@ -7,6 +7,7 @@ import { scoreByImportance } from '@/lib/importance-score'
 import type { Article, TopStory, UserPreferences, NewsApiResponse, MoodPreset, DepthMode } from '@/types'
 
 export async function GET(request: Request) {
+  const t0 = Date.now()
   try {
     await ensureDefaultPreferences()
 
@@ -169,6 +170,7 @@ export async function GET(request: Request) {
         : {}),
     }
 
+    console.log(`[/api/news] ${Date.now() - t0}ms (category=${category}, mode=${mode})`)
     return NextResponse.json(response)
   } catch (err) {
     console.error('Error in /api/news:', err)

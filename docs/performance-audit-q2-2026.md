@@ -106,13 +106,24 @@ No action taken. Re-evaluate if feed response time exceeds 300ms after data grow
 
 ## Measurement Setup
 
-**Manual Lighthouse run:**
+**Lighthouse CLI (npm run perf):**
 ```bash
-cd ~/projects/SmartBrief
-npm run build
-npm start
-# In Chrome: DevTools → Lighthouse → Mobile → Simulated throttling → Analyse page load
+# 1. Start the production server (Docker or local)
+npm run build && npm start        # local
+# or: docker-compose up
+
+# 2. Run Lighthouse against it
+npm run perf                      # outputs HTML report → docs/lighthouse-report.html
+npm run perf:json                 # outputs JSON  report → docs/lighthouse-report.json
 ```
+Both scripts use Lighthouse's default mobile preset (Moto G4, simulated 4G) with `--disable-storage-reset` so the PWA service worker is not cleared between runs.
+
+**API response time:**
+`/api/news` logs timing on every request:
+```
+[/api/news] 47ms (category=all, mode=standard)
+```
+Target: <300ms on a warm run. Monitor with `docker logs smartbrief -f | grep api/news`.
 
 **Bundle analysis:**
 ```bash
