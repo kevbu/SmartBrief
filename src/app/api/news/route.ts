@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { applyBalanceFilter, computeBalanceStats } from '@/lib/balance-filter'
+import { applyBalanceFilter, computeBalanceStats, computeArticleReason } from '@/lib/balance-filter'
 import { ensureDefaultPreferences } from '@/lib/news-aggregator'
 import { applyDecayAndGetWeightMap, effectiveNegativeRatio } from '@/lib/source-weights'
 import { applyDecayAndGetTopicWeightMap } from '@/lib/topic-weights'
@@ -54,6 +54,7 @@ export async function GET(request: Request) {
       quietHoursStart: prefsDb?.quietHoursStart ?? '22:00',
       quietHoursEnd: prefsDb?.quietHoursEnd ?? '07:00',
       learningEnabled: prefsDb?.learningEnabled ?? true,
+      preferenceWeight: prefsDb?.preferenceWeight ?? 0.3,
     }
 
     // Load source and topic weights in parallel (applies lazy decay, persists changes)
@@ -106,6 +107,16 @@ export async function GET(request: Request) {
 
     // Apply balance filter with source and topic weights
     const balanceFiltered = applyBalanceFilter(articles, preferences, category, weightMap, topicWeightMap)
+
+    // Attach reason strings (only computed when learning is active and weights exist)
+    const hasLearningData =
+      preferences.learningEnabled &&
+      (Object.keys(weightMap).length > 0 || Object.keys(topicWeightMap).length > 0)
+    if (hasLearningData) {
+      for (const article of balanceFiltered) {
+        article.reason = computeArticleReason(article, weightMap, topicWeightMap, preferences)
+      }
+    }
 
     let paginatedArticles: Article[]
     if (mode === 'catchup') {

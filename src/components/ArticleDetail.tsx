@@ -153,9 +153,17 @@ export default function ArticleDetail({
           </div>
 
           {/* Headline */}
-          <h2 className="mb-4 text-xl font-bold leading-snug text-gray-900">
+          <h2 className="mb-3 text-xl font-bold leading-snug text-gray-900">
             {title}
           </h2>
+
+          {/* Why am I seeing this? */}
+          {article?.reason ? (
+            <p className="mb-3 flex items-center gap-1 text-[11px] text-gray-400">
+              <span>✦</span>
+              <span>{article.reason}</span>
+            </p>
+          ) : null}
 
           {/* Divider */}
           <div className="mb-4 border-t border-gray-100" />

@@ -22,6 +22,7 @@ export interface Article {
   isRead: boolean
   isSaved: boolean
   fetchedAt: Date | string
+  reason?: string
 }
 
 export interface TopStory {
@@ -53,6 +54,7 @@ export interface UserPreferences {
   quietHoursStart: string
   quietHoursEnd: string
   learningEnabled: boolean
+  preferenceWeight: number
 }
 
 export interface AppState {
@@ -156,6 +158,13 @@ export interface ArticleFeedback {
   createdAt: Date | string
 }
 
+export interface RecapFeedbackSummary {
+  moreLikeThis: number
+  lessLikeThis: number
+  hiddenSourceCount: number
+  topicNudges: string[]  // topics with ≥3 "less-like-this" signals this week
+}
+
 export interface RecapStats {
   totalRead: number
   topicMix: Record<string, number>
@@ -163,4 +172,7 @@ export interface RecapStats {
   sourceMix: Record<string, number>
   avgSentimentScore: number
   periodDays: number
+  daysActive: number
+  biasMix: Record<string, number>  // left/center-left/center/center-right/right counts
+  feedbackSummary: RecapFeedbackSummary
 }

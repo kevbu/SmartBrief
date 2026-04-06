@@ -10,6 +10,7 @@ import BalanceMeter from '@/components/BalanceMeter'
 import SessionProgress from '@/components/SessionProgress'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import CatchUpBanner from '@/components/CatchUpBanner'
+import Link from 'next/link'
 import type {
   Article,
   TopStory,
@@ -20,6 +21,14 @@ import type {
   MoodPreset,
   FeedbackType,
 } from '@/types'
+
+const TOPIC_LABELS: Record<string, string> = {
+  technology: 'Tech & AI',
+  science: 'Science & Health',
+  business: 'Business',
+  world: 'World News',
+  positive: 'Bright Spots',
+}
 
 function SkeletonCard() {
   return (
@@ -77,6 +86,23 @@ export default function HomePage() {
   const hideSourceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Auto-dismiss undo toast after 5 s
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Recap teaser — shown on briefing complete screen
+  const [recapTeaser, setRecapTeaser] = useState<{ totalRead: number; topTopic: string | null } | null>(null)
+  useEffect(() => {
+    fetch('/api/recap?days=7')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data?.stats) return
+        const { totalRead, topicMix } = data.stats
+        const topTopic = totalRead > 0
+          ? (Object.entries(topicMix as Record<string, number>)
+              .sort(([, a], [, b]) => b - a)[0]?.[0] ?? null)
+          : null
+        setRecapTeaser({ totalRead, topTopic })
+      })
+      .catch(() => null)
+  }, [])
 
   // First-time discovery tooltip
   const [showFeedbackTooltip, setShowFeedbackTooltip] = useState(false)
@@ -569,6 +595,26 @@ export default function HomePage() {
                     Load more stories
                   </button>
                 </div>
+              )}
+
+              {/* This Week recap teaser — shown after briefing complete if read history exists */}
+              {!sessionExpanded && articles.length > sessionLimit && recapTeaser && recapTeaser.totalRead > 0 && (
+                <Link
+                  href="/recap"
+                  className="mx-4 mb-4 flex items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 active:scale-98 transition-transform"
+                >
+                  <div>
+                    <p className="text-xs font-semibold text-indigo-700">This Week</p>
+                    <p className="mt-0.5 text-[11px] text-indigo-500 leading-snug">
+                      You read {recapTeaser.totalRead} {recapTeaser.totalRead === 1 ? 'story' : 'stories'} this week
+                      {recapTeaser.topTopic ? ` — mostly ${TOPIC_LABELS[recapTeaser.topTopic] ?? recapTeaser.topTopic}` : ''}.
+                      Tap to see your full recap.
+                    </p>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="ml-3 h-4 w-4 flex-shrink-0 text-indigo-400">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </Link>
               )}
 
               {isRefreshing && (

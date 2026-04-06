@@ -66,6 +66,7 @@ model UserPreferences {
   quietHoursStart     String   @default("22:00")
   quietHoursEnd       String   @default("07:00")
   learningEnabled     Boolean  @default(true)
+  preferenceWeight    Float    @default(0.3)
   updatedAt           DateTime @updatedAt
 }
 

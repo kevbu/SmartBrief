@@ -26,6 +26,7 @@ function dbToPreferences(prefs: {
   quietHoursStart: string
   quietHoursEnd: string
   learningEnabled: boolean
+  preferenceWeight: number
 }): UserPreferences {
   return {
     id: prefs.id,
@@ -53,6 +54,7 @@ function dbToPreferences(prefs: {
     quietHoursStart: prefs.quietHoursStart ?? '22:00',
     quietHoursEnd: prefs.quietHoursEnd ?? '07:00',
     learningEnabled: prefs.learningEnabled ?? true,
+    preferenceWeight: prefs.preferenceWeight ?? 0.3,
   }
 }
 
@@ -155,6 +157,10 @@ export async function PUT(request: Request) {
     if (body.quietHoursStart !== undefined) updateData.quietHoursStart = body.quietHoursStart
     if (body.quietHoursEnd !== undefined) updateData.quietHoursEnd = body.quietHoursEnd
     if (body.learningEnabled !== undefined) updateData.learningEnabled = body.learningEnabled
+    if (body.preferenceWeight !== undefined) {
+      const clamped = Math.max(0, Math.min(1, body.preferenceWeight))
+      updateData.preferenceWeight = clamped
+    }
 
     const prefs = await db.userPreferences.upsert({
       where: { id: 'default' },

@@ -205,6 +205,264 @@ function NewsletterIngestSection() {
   )
 }
 
+const CATEGORY_DISPLAY: Record<string, string> = {
+  technology: 'Tech & AI',
+  science: 'Science & Health',
+  business: 'Business',
+  world: 'World News',
+  positive: 'Bright Spots',
+}
+
+interface LearnedPrefs {
+  boostedTopics: Array<{ topic: string; weight: number }>
+  suppressedTopics: Array<{ topic: string; weight: number }>
+  suppressedSources: string[]
+  signalCount: number
+}
+
+function LearnedPreferencesSection({
+  learningEnabled,
+  onToggleLearning,
+  preferenceWeight,
+  onPreferenceWeightChange,
+}: {
+  learningEnabled: boolean
+  onToggleLearning: (v: boolean) => void
+  preferenceWeight: number
+  onPreferenceWeightChange: (v: number) => void
+}) {
+  const [data, setData] = useState<LearnedPrefs | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [resetting, setResetting] = useState<string | null>(null)
+  const [showConfirmAll, setShowConfirmAll] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  function load() {
+    setLoading(true)
+    fetch('/api/preferences/learned')
+      .then((r) => r.json())
+      .then((d: LearnedPrefs) => setData(d))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function resetTopic(topic: string) {
+    setResetting(topic)
+    try {
+      await fetch(`/api/preferences/learned?type=topic&value=${encodeURIComponent(topic)}`, { method: 'DELETE' })
+      load()
+    } finally {
+      setResetting(null)
+    }
+  }
+
+  async function resetSource(source: string) {
+    setResetting(source)
+    try {
+      await fetch(`/api/preferences/learned?type=source&value=${encodeURIComponent(source)}`, { method: 'DELETE' })
+      load()
+    } finally {
+      setResetting(null)
+    }
+  }
+
+  async function resetAll() {
+    setResetting('all')
+    try {
+      await fetch('/api/preferences/learned?all=true', { method: 'DELETE' })
+      setShowConfirmAll(false)
+      load()
+    } finally {
+      setResetting(null)
+    }
+  }
+
+  const hasAnyData =
+    data &&
+    (data.boostedTopics.length > 0 || data.suppressedTopics.length > 0 || data.suppressedSources.length > 0)
+
+  return (
+    <section className="rounded-xl bg-white p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">Feed Learning</h2>
+          <p className="text-xs text-gray-500">
+            Adapts your feed based on what you read and skip
+          </p>
+        </div>
+        {/* Enable/disable toggle */}
+        <button
+          role="switch"
+          aria-checked={learningEnabled}
+          onClick={() => onToggleLearning(!learningEnabled)}
+          className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
+            learningEnabled ? 'bg-blue-600' : 'bg-gray-300'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+              learningEnabled ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-xs text-gray-400">Loading…</p>
+      ) : !hasAnyData ? (
+        <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-400">
+          {data?.signalCount === 0
+            ? 'No signals yet — start reading to personalise your feed'
+            : 'No strong preferences detected yet — keep reading'}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {/* Boosted topics */}
+          {data.boostedTopics.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Boosted topics</p>
+              <div className="space-y-1">
+                {data.boostedTopics.map((t) => (
+                  <div key={t.topic} className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-sm text-gray-700">
+                      <span className="text-green-500">↑</span>
+                      {CATEGORY_DISPLAY[t.topic] ?? t.topic}
+                    </span>
+                    <button
+                      onClick={() => resetTopic(t.topic)}
+                      disabled={resetting === t.topic}
+                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Suppressed topics */}
+          {data.suppressedTopics.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Suppressed topics</p>
+              <div className="space-y-1">
+                {data.suppressedTopics.map((t) => (
+                  <div key={t.topic} className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-sm text-gray-700">
+                      <span className="text-orange-400">↓</span>
+                      {CATEGORY_DISPLAY[t.topic] ?? t.topic}
+                    </span>
+                    <button
+                      onClick={() => resetTopic(t.topic)}
+                      disabled={resetting === t.topic}
+                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hidden sources */}
+          {data.suppressedSources.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Hidden sources</p>
+              <div className="space-y-1">
+                {data.suppressedSources.map((s) => (
+                  <div key={s} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">{s}</span>
+                    <button
+                      onClick={() => resetSource(s)}
+                      disabled={resetting === s}
+                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40"
+                    >
+                      Unhide
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Signal count */}
+      {data && data.signalCount > 0 && (
+        <p className="mt-3 text-[10px] text-gray-300">
+          {data.signalCount} signal{data.signalCount === 1 ? '' : 's'} recorded
+        </p>
+      )}
+
+      {/* Advanced */}
+      <button
+        onClick={() => setShowAdvanced((v) => !v)}
+        className="mt-3 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
+      >
+        <span>{showAdvanced ? '▾' : '▸'}</span>
+        <span>Advanced</span>
+      </button>
+      {showAdvanced ? (
+        <div className="mt-2 space-y-2">
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-xs text-gray-500">Learning influence</label>
+              <span className="text-xs font-medium text-gray-700">{Math.round(preferenceWeight * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={preferenceWeight}
+              onChange={(e) => onPreferenceWeightChange(parseFloat(e.target.value))}
+              className="w-full accent-blue-600"
+            />
+            <p className="mt-0.5 text-[10px] text-gray-400">
+              0% = signals recorded but feed unaffected · 100% = full weight influence
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Reset all */}
+      {hasAnyData && !showConfirmAll && (
+        <button
+          onClick={() => setShowConfirmAll(true)}
+          className="mt-3 text-xs text-gray-400 underline-offset-2 hover:text-red-500 hover:underline"
+        >
+          Reset all learned preferences
+        </button>
+      )}
+      {showConfirmAll && (
+        <div className="mt-3 rounded-lg bg-red-50 p-3">
+          <p className="mb-2 text-xs text-red-700">
+            This clears all topic weights, source weights, and signal history. Your feed will revert to recency + sentiment balance.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={resetAll}
+              disabled={resetting === 'all'}
+              className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+            >
+              {resetting === 'all' ? 'Resetting…' : 'Yes, reset all'}
+            </button>
+            <button
+              onClick={() => setShowConfirmAll(false)}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
 const REFRESH_OPTIONS = [
   { value: 30,  label: '30 min' },
   { value: 60,  label: '1 hour' },
@@ -287,6 +545,10 @@ export default function SettingsPage() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [detailSource, setDetailSource] = useState<(typeof NEWS_SOURCES)[0] | null>(null)
 
+  // Learning state
+  const [learningEnabled, setLearningEnabled] = useState(true)
+  const [preferenceWeight, setPreferenceWeight] = useState(0.3)
+
   // Push notification state
   const [pushEnabled, setPushEnabled] = useState(false)
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false)
@@ -323,6 +585,8 @@ export default function SettingsPage() {
           setQuietHoursEnabled(prefs.quietHoursEnabled ?? false)
           setQuietHoursStart(prefs.quietHoursStart ?? '22:00')
           setQuietHoursEnd(prefs.quietHoursEnd ?? '07:00')
+          setLearningEnabled(prefs.learningEnabled ?? true)
+          setPreferenceWeight(prefs.preferenceWeight ?? 0.3)
         }
         // Check current browser push permission status
         if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -521,6 +785,8 @@ export default function SettingsPage() {
         quietHoursEnabled,
         quietHoursStart,
         quietHoursEnd,
+        learningEnabled,
+        preferenceWeight,
       }
 
       const res = await fetch('/api/preferences', {
@@ -1101,6 +1367,14 @@ export default function SettingsPage() {
             </div>
           )}
         </section>
+
+        {/* Feed Learning */}
+        <LearnedPreferencesSection
+          learningEnabled={learningEnabled}
+          onToggleLearning={setLearningEnabled}
+          preferenceWeight={preferenceWeight}
+          onPreferenceWeightChange={setPreferenceWeight}
+        />
 
         {/* Auto-Refresh */}
         <section className="rounded-xl bg-white p-4 shadow-sm">

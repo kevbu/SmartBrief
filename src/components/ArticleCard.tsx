@@ -183,11 +183,12 @@ export default function ArticleCard({
           )}
 
           {/* Deep mode: "Why am I seeing this?" */}
-          {depthMode === 'deep' && (
-            <p className="mt-1.5 text-[10px] text-gray-300">
-              From {article.source} · {article.category} · {article.sentiment} tone
+          {depthMode === 'deep' ? (
+            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-300">
+              <span>✦</span>
+              <span>{article.reason ?? `From ${article.source} · ${article.category} · ${article.sentiment} tone`}</span>
             </p>
-          )}
+          ) : null}
 
           {/* Footer */}
           <div className="mt-2 flex items-center justify-between">
