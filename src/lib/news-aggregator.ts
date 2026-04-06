@@ -1,6 +1,7 @@
 import { db } from './db'
 import { fetchAllFeeds } from './news-fetcher'
 import { analyzeSentiment, generateTopStories } from './claude-analyzer'
+import { runSignalCleanupIfNeeded } from './topic-weights'
 import type { Article } from '@/types'
 
 export async function refreshNews(): Promise<{
@@ -174,4 +175,9 @@ export async function ensureDefaultPreferences(): Promise<void> {
     },
     update: {},
   })
+
+  // Throttled 90-day signal log cleanup — runs at most once per process-day
+  void runSignalCleanupIfNeeded().catch((e) =>
+    console.error('[ensureDefaultPreferences] signal cleanup failed:', e)
+  )
 }

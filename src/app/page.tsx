@@ -328,6 +328,15 @@ export default function HomePage() {
     }
   }
 
+  function handleSkip(id: string) {
+    // Fire-and-forget implicit skip signal — no undo, no UI change
+    fetch(`/api/articles/${id}/signal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'skip' }),
+    }).catch((e) => console.error('[skip-signal] failed:', e))
+  }
+
   const depthMode = preferences?.depthMode ?? 'skim'
   const moodPreset = preferences?.moodPreset ?? 'balanced'
 
@@ -533,6 +542,7 @@ export default function HomePage() {
                     onMarkRead={handleMarkRead}
                     onToggleSave={handleToggleSave}
                     onFeedback={handleFeedback}
+                    onSkip={handleSkip}
                     onSelect={(article) => setSelectedItem({ type: 'article', data: article })}
                     showFeedbackTooltip={showFeedbackTooltip && item.article.id === firstArticleId}
                     onFeedbackTooltipDismissed={dismissFeedbackTooltip}

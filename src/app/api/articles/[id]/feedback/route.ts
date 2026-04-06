@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { upsertSourceWeight, reverseSourceWeight } from '@/lib/source-weights'
+import { upsertTopicWeight, reverseTopicWeight } from '@/lib/topic-weights'
 import type { FeedbackType } from '@/types'
 
 const VALID_FEEDBACK: FeedbackType[] = [
@@ -34,6 +35,12 @@ export async function POST(
       )
     }
 
+    // Fetch the article to get its category (topic) for the learning signal
+    const article = await db.article.findUnique({
+      where: { id: params.id },
+      select: { category: true },
+    })
+
     // Record the feedback — return the ID so the client can undo within 5 s
     const record = await db.articleFeedback.create({
       data: {
@@ -43,8 +50,23 @@ export async function POST(
       },
     })
 
-    // Update source weight based on feedback signal
-    await upsertSourceWeight(body.source, body.feedback)
+    // Write learning signal (separate append-only log for topic weight decay)
+    if (article) {
+      await db.feedbackSignal.create({
+        data: {
+          articleId: params.id,
+          topic: article.category,
+          source: body.source ?? null,
+          action: body.feedback,
+        },
+      })
+    }
+
+    // Update source and topic weights based on feedback signal
+    await Promise.all([
+      upsertSourceWeight(body.source, body.feedback),
+      upsertTopicWeight(article?.category, body.feedback),
+    ])
 
     // If hiding a source, add it to hiddenSources in preferences
     if (body.feedback === 'hide-source' && body.source) {
@@ -104,8 +126,24 @@ export async function DELETE(
 
     await db.articleFeedback.delete({ where: { id: feedbackId } })
 
-    // Reverse source weight
-    await reverseSourceWeight(record.source, record.feedback)
+    // Delete the corresponding FeedbackSignal (best-effort — may not exist)
+    await db.feedbackSignal.deleteMany({
+      where: {
+        articleId: record.articleId,
+        action: record.feedback,
+        source: record.source ?? null,
+      },
+    })
+
+    // Reverse source and topic weights
+    const article = await db.article.findUnique({
+      where: { id: record.articleId },
+      select: { category: true },
+    })
+    await Promise.all([
+      reverseSourceWeight(record.source, record.feedback),
+      reverseTopicWeight(article?.category, record.feedback),
+    ])
 
     // If the undone signal was hide-source, remove from hiddenSources
     if (record.feedback === 'hide-source' && record.source) {

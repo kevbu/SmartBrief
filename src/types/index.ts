@@ -52,6 +52,7 @@ export interface UserPreferences {
   quietHoursEnabled: boolean
   quietHoursStart: string
   quietHoursEnd: string
+  learningEnabled: boolean
 }
 
 export interface AppState {

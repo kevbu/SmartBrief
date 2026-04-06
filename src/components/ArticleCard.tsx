@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { clsx } from 'clsx'
 import { formatDistanceToNow } from 'date-fns'
@@ -10,12 +10,15 @@ import BiasBadge from './BiasBadge'
 import FeedbackMenu from './FeedbackMenu'
 import { getEmojiForSource } from '@/lib/news-sources'
 
+const SKIP_VISIBILITY_MS = 3000 // 3s visible without interaction = skip signal
+
 interface ArticleCardProps {
   article: Article
   depthMode?: DepthMode
   onMarkRead: (id: string) => void
   onToggleSave: (id: string) => void
   onFeedback?: (id: string, feedback: FeedbackType) => void
+  onSkip?: (id: string) => void
   onSelect?: (article: Article) => void
   showFeedbackTooltip?: boolean
   onFeedbackTooltipDismissed?: () => void
@@ -27,6 +30,7 @@ export default function ArticleCard({
   onMarkRead,
   onToggleSave,
   onFeedback,
+  onSkip,
   onSelect,
   showFeedbackTooltip = false,
   onFeedbackTooltipDismissed,
@@ -36,7 +40,53 @@ export default function ArticleCard({
   const [hidden, setHidden] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
 
+  // Skip signal: fire onSkip if article is visible >3s without being interacted with
+  const cardRef = useRef<HTMLElement>(null)
+  const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const interactedRef = useRef(article.isRead) // pre-read articles don't need skip
+
+  useEffect(() => {
+    if (!onSkip || interactedRef.current) return
+
+    const el = cardRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          skipTimerRef.current = setTimeout(() => {
+            if (!interactedRef.current) {
+              onSkip(article.id)
+              interactedRef.current = true // only fire once per card
+            }
+          }, SKIP_VISIBILITY_MS)
+        } else {
+          if (skipTimerRef.current !== null) {
+            clearTimeout(skipTimerRef.current)
+            skipTimerRef.current = null
+          }
+        }
+      },
+      { threshold: 0.5 }
+    )
+
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      if (skipTimerRef.current !== null) clearTimeout(skipTimerRef.current)
+    }
+  // article.id and onSkip are stable across card's lifetime — safe deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article.id])
+
   function handleClick() {
+    // Cancel skip timer — user interacted with this card
+    interactedRef.current = true
+    if (skipTimerRef.current !== null) {
+      clearTimeout(skipTimerRef.current)
+      skipTimerRef.current = null
+    }
+
     if (collapsed) {
       setCollapsed(false)
       return
@@ -97,6 +147,7 @@ export default function ArticleCard({
 
   return (
     <article
+      ref={cardRef}
       className={clsx(
         'mx-4 mb-3 cursor-pointer rounded-xl bg-white p-4 shadow-sm transition-all active:scale-[0.99]',
         isRead && 'opacity-60'

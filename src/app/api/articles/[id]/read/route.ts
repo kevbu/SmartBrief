@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { upsertTopicWeight } from '@/lib/topic-weights'
 import type { ArticleActionResponse } from '@/types'
 
 export async function POST(
@@ -11,6 +12,19 @@ export async function POST(
       where: { id: params.id },
       data: { isRead: true, readAt: new Date() },
     })
+
+    // Write implicit read signal — fire-and-forget, don't block response
+    void Promise.all([
+      db.feedbackSignal.create({
+        data: {
+          articleId: params.id,
+          topic: article.category,
+          source: article.source,
+          action: 'read',
+        },
+      }),
+      upsertTopicWeight(article.category, 'read'),
+    ]).catch((e) => console.error('[read-signal] failed to write:', e))
 
     const response: ArticleActionResponse = {
       success: true,

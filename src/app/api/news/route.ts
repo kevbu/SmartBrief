@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { applyBalanceFilter, computeBalanceStats } from '@/lib/balance-filter'
 import { ensureDefaultPreferences } from '@/lib/news-aggregator'
 import { applyDecayAndGetWeightMap, effectiveNegativeRatio } from '@/lib/source-weights'
+import { applyDecayAndGetTopicWeightMap } from '@/lib/topic-weights'
 import { scoreByImportance } from '@/lib/importance-score'
 import type { Article, TopStory, UserPreferences, NewsApiResponse, MoodPreset, DepthMode } from '@/types'
 
@@ -52,10 +53,14 @@ export async function GET(request: Request) {
       quietHoursEnabled: prefsDb?.quietHoursEnabled ?? false,
       quietHoursStart: prefsDb?.quietHoursStart ?? '22:00',
       quietHoursEnd: prefsDb?.quietHoursEnd ?? '07:00',
+      learningEnabled: prefsDb?.learningEnabled ?? true,
     }
 
-    // Load source weights (applies lazy decay, persists changes)
-    const weightMap = await applyDecayAndGetWeightMap()
+    // Load source and topic weights in parallel (applies lazy decay, persists changes)
+    const [weightMap, topicWeightMap] = await Promise.all([
+      applyDecayAndGetWeightMap(),
+      prefsDb?.learningEnabled !== false ? applyDecayAndGetTopicWeightMap() : Promise.resolve({}),
+    ])
 
     // Compute effective negative ratio from TOO_NEGATIVE signals
     const negRatio = await effectiveNegativeRatio(preferences.negativeRatio)
@@ -99,8 +104,8 @@ export async function GET(request: Request) {
       })
     }
 
-    // Apply balance filter with source weights
-    const balanceFiltered = applyBalanceFilter(articles, preferences, category, weightMap)
+    // Apply balance filter with source and topic weights
+    const balanceFiltered = applyBalanceFilter(articles, preferences, category, weightMap, topicWeightMap)
 
     let paginatedArticles: Article[]
     if (mode === 'catchup') {
