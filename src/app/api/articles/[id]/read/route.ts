@@ -9,7 +9,7 @@ export async function POST(
   try {
     const article = await db.article.update({
       where: { id: params.id },
-      data: { isRead: true },
+      data: { isRead: true, readAt: new Date() },
     })
 
     const response: ArticleActionResponse = {
