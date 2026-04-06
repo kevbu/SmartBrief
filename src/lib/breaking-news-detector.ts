@@ -22,6 +22,7 @@ const URGENCY_WINDOW_MS = 2 * 60 * 60 * 1000       // 2 hours
 const CLUSTER_WINDOW_MS = 30 * 60 * 1000            // 30 minutes
 const MIN_SOURCES = 3
 const DETECT_INTERVAL_MS = 5 * 60 * 1000            // 5 minutes
+const DAILY_PUSH_CAP = 2                             // max notifications per calendar day
 const STOP_WORDS = new Set([
   'a','an','the','and','or','but','in','on','at','to','for','of','with',
   'is','are','was','were','be','been','by','from','as','its','it','this',
@@ -59,6 +60,18 @@ export interface DetectResult {
 export async function detectAndPush(): Promise<DetectResult> {
   const prefs = await db.userPreferences.findUnique({ where: { id: 'default' } })
   if (!prefs?.pushEnabled) {
+    await markChecked()
+    return { clustersFound: 0, pushSent: 0 }
+  }
+
+  // Daily cap: count pushes already sent today (midnight to midnight, local server time)
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const pushedToday = await db.article.count({
+    where: { criticalPushedAt: { gte: todayStart } },
+  })
+  if (pushedToday >= DAILY_PUSH_CAP) {
+    console.log(`[breaking-news-detector] Daily cap reached (${pushedToday}/${DAILY_PUSH_CAP}) — skipping`)
     await markChecked()
     return { clustersFound: 0, pushSent: 0 }
   }
@@ -107,10 +120,10 @@ export async function detectAndPush(): Promise<DetectResult> {
   }
 
   let pushSent = 0
-  const qualifying = clusters.filter((c) => {
-    const distinctSources = new Set(c.members.map((a) => a.source)).size
-    return distinctSources >= MIN_SOURCES
-  })
+  const remaining = DAILY_PUSH_CAP - pushedToday
+  const qualifying = clusters
+    .filter((c) => new Set(c.members.map((a) => a.source)).size >= MIN_SOURCES)
+    .slice(0, remaining)   // never exceed the daily cap even with multiple qualifying clusters
 
   for (const cluster of qualifying) {
     const lead = cluster.lead

@@ -557,6 +557,13 @@ export default function SettingsPage() {
   const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('default')
   const [pushRegistering, setPushRegistering] = useState(false)
   const [pushError, setPushError] = useState<string | null>(null)
+  const [notifHistory, setNotifHistory] = useState<Array<{ id: string; title: string; body: string; sentAt: string }>>([])
+  useEffect(() => {
+    fetch('/api/push/history')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.logs) setNotifHistory(d.logs) })
+      .catch(() => null)
+  }, [])
 
   // Debounce timer for sources
   const sourcesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1322,6 +1329,23 @@ export default function SettingsPage() {
 
               {pushError && (
                 <p className="text-xs text-red-500">{pushError}</p>
+              )}
+
+              {/* Notification history — last 20 sent, always visible when push is supported */}
+              {notifHistory.length > 0 && (
+                <div className="rounded-lg bg-gray-50 p-3">
+                  <p className="mb-2 text-xs font-medium text-gray-600">Recent alerts</p>
+                  <div className="space-y-2">
+                    {notifHistory.slice(0, 5).map((n) => (
+                      <div key={n.id} className="text-[11px] text-gray-500">
+                        <p className="font-medium text-gray-700 leading-snug">{n.body}</p>
+                        <p className="text-gray-400">
+                          {new Date(n.sentAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Quiet hours — only shown when push is enabled */}

@@ -119,6 +119,16 @@ model TopicWeight {
   updatedAt    DateTime @updatedAt
 }
 
+model NotificationLog {
+  id        String   @id @default(cuid())
+  storyId   String
+  title     String
+  body      String
+  sentAt    DateTime @default(now())
+
+  @@index([sentAt(sort: Desc)])
+}
+
 model FeedbackSignal {
   id        String   @id @default(cuid())
   articleId String

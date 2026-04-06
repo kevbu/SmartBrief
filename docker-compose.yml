@@ -10,6 +10,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-smartbrief-secret}
       - SMARTBRIEF_PASSWORD=${SMARTBRIEF_PASSWORD:-}
+      # Required for Web Push VAPID subject — set to your app's public URL (e.g. https://news.example.com)
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-}
       # Newsletter ingestion — webhook (optional)
       - NEWSLETTER_INGEST_SECRET=${NEWSLETTER_INGEST_SECRET:-}
       # Newsletter ingestion — IMAP polling (optional)

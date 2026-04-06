@@ -56,11 +56,11 @@ export async function dispatch(payload: PushPayload): Promise<'sent' | 'quiet' |
   }
 
   const vapid = await getOrCreateVapidKeys()
-  webpush.setVapidDetails(
-    'mailto:smartbrief@localhost',
-    vapid.publicKey,
-    vapid.privateKey,
-  )
+  // VAPID subject: use the app's public URL when configured (required for production push services);
+  // falls back to a mailto so development/self-hosted setups without a domain still work.
+  const vapidSubject =
+    process.env.NEXT_PUBLIC_APP_URL ?? 'mailto:smartbrief@localhost'
+  webpush.setVapidDetails(vapidSubject, vapid.publicKey, vapid.privateKey)
 
   const pushSubscription = {
     endpoint: subscription.endpoint,
@@ -72,5 +72,11 @@ export async function dispatch(payload: PushPayload): Promise<'sent' | 'quiet' |
 
   await webpush.sendNotification(pushSubscription, JSON.stringify(payload))
   console.log(`[push-dispatcher] Sent push for story ${payload.storyId}`)
+
+  // Log for history UI — fire-and-forget, never throws
+  db.notificationLog.create({
+    data: { storyId: payload.storyId, title: payload.title, body: payload.body },
+  }).catch((e) => console.error('[push-dispatcher] Failed to write notification log:', e))
+
   return 'sent'
 }
