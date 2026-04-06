@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { upsertSourceWeight } from '@/lib/source-weights'
+import { upsertSourceWeight, reverseSourceWeight } from '@/lib/source-weights'
+import { upsertTopicWeight, reverseTopicWeight } from '@/lib/topic-weights'
 import type { FeedbackType } from '@/types'
 
 const VALID_FEEDBACK: FeedbackType[] = [
@@ -34,8 +35,14 @@ export async function POST(
       )
     }
 
-    // Record the feedback
-    await db.articleFeedback.create({
+    // Fetch the article to get its category (topic) for the learning signal
+    const article = await db.article.findUnique({
+      where: { id: params.id },
+      select: { category: true },
+    })
+
+    // Record the feedback — return the ID so the client can undo within 5 s
+    const record = await db.articleFeedback.create({
       data: {
         articleId: params.id,
         feedback: body.feedback,
@@ -43,8 +50,23 @@ export async function POST(
       },
     })
 
-    // Update source weight based on feedback signal
-    await upsertSourceWeight(body.source, body.feedback)
+    // Write learning signal (separate append-only log for topic weight decay)
+    if (article) {
+      await db.feedbackSignal.create({
+        data: {
+          articleId: params.id,
+          topic: article.category,
+          source: body.source ?? null,
+          action: body.feedback,
+        },
+      })
+    }
+
+    // Update source and topic weights based on feedback signal
+    await Promise.all([
+      upsertSourceWeight(body.source, body.feedback),
+      upsertTopicWeight(article?.category, body.feedback),
+    ])
 
     // If hiding a source, add it to hiddenSources in preferences
     if (body.feedback === 'hide-source' && body.source) {
@@ -63,9 +85,84 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, feedbackId: record.id })
   } catch (err) {
     console.error(`Error recording feedback for article ${params.id}:`, err)
+    return NextResponse.json(
+      { success: false, error: err instanceof Error ? err.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * DELETE /api/articles/[id]/feedback?feedbackId=<id>
+ * Undo a feedback submission within the 5-second undo window.
+ * Reverses source weight and hiddenSources side effects.
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const url = new URL(request.url)
+    const feedbackId = url.searchParams.get('feedbackId')
+
+    if (!feedbackId) {
+      return NextResponse.json({ success: false, error: 'feedbackId required' }, { status: 400 })
+    }
+
+    const record = await db.articleFeedback.findUnique({ where: { id: feedbackId } })
+
+    // If the record doesn't exist it was already deleted — treat as success
+    if (!record) {
+      return NextResponse.json({ success: true })
+    }
+
+    // Ensure the record belongs to the requested article
+    if (record.articleId !== params.id) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
+
+    await db.articleFeedback.delete({ where: { id: feedbackId } })
+
+    // Delete the corresponding FeedbackSignal (best-effort — may not exist)
+    await db.feedbackSignal.deleteMany({
+      where: {
+        articleId: record.articleId,
+        action: record.feedback,
+        source: record.source ?? null,
+      },
+    })
+
+    // Reverse source and topic weights
+    const article = await db.article.findUnique({
+      where: { id: record.articleId },
+      select: { category: true },
+    })
+    await Promise.all([
+      reverseSourceWeight(record.source, record.feedback),
+      reverseTopicWeight(article?.category, record.feedback),
+    ])
+
+    // If the undone signal was hide-source, remove from hiddenSources
+    if (record.feedback === 'hide-source' && record.source) {
+      const prefs = await db.userPreferences.findUnique({ where: { id: 'default' } })
+      if (prefs) {
+        const current = prefs.hiddenSources
+          ? prefs.hiddenSources.split(',').filter(Boolean)
+          : []
+        const updated = current.filter((s) => s !== record.source)
+        await db.userPreferences.update({
+          where: { id: 'default' },
+          data: { hiddenSources: updated.join(',') },
+        })
+      }
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error(`Error undoing feedback for article ${params.id}:`, err)
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : 'Unknown error' },
       { status: 500 }

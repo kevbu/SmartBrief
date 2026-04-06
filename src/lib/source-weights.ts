@@ -57,6 +57,28 @@ export async function upsertSourceWeight(
 }
 
 /**
+ * Reverses a previously applied weight adjustment (called on feedback undo).
+ * No-ops for feedback types with no delta (off-topic, hide-source).
+ */
+export async function reverseSourceWeight(
+  source: string | null | undefined,
+  feedbackType: string
+): Promise<void> {
+  if (!source) return
+  const delta = WEIGHT_DELTA[feedbackType as FeedbackType]
+  if (delta === undefined) return
+
+  const existing = await db.sourceWeight.findUnique({ where: { source } })
+  if (!existing) return
+
+  const newWeight = clamp(existing.weight - delta)
+  await db.sourceWeight.update({
+    where: { source },
+    data: { weight: newWeight, lastAdjusted: new Date() },
+  })
+}
+
+/**
  * Fetches all SourceWeight rows, applies lazy decay, persists changed weights,
  * and returns a Record<source, effectiveWeight> ready for ranking.
  * Sources with no row default to 1.0 at call sites.

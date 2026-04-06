@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/Header'
 import TopicTabs from '@/components/TopicTabs'
 import TopStoryCard from '@/components/TopStoryCard'
@@ -64,6 +64,35 @@ export default function HomePage() {
   const [catchUpGapDays, setCatchUpGapDays] = useState(0)
   const [catchUpSince, setCatchUpSince] = useState<string | null>(null)
   const [catchUpDismissed, setCatchUpDismissed] = useState(false)
+
+  // Feedback — undo toast: write immediately, allow DELETE within 5 s
+  const [undoToast, setUndoToast] = useState<string | null>(null)
+  const pendingFeedbackRef = useRef<{
+    feedbackId: string
+    id: string        // articleId
+    feedback: FeedbackType
+    source: string
+  } | null>(null)
+  // Separate timer ref: only used to defer the in-session hide-source feed filter
+  const hideSourceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Auto-dismiss undo toast after 5 s
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // First-time discovery tooltip
+  const [showFeedbackTooltip, setShowFeedbackTooltip] = useState(false)
+  useEffect(() => {
+    if (!localStorage.getItem('smartbrief:feedback-tooltip-shown')) {
+      setShowFeedbackTooltip(true)
+      // Auto-dismiss after 6 s if user never taps the button
+      const t = setTimeout(() => setShowFeedbackTooltip(false), 6000)
+      return () => clearTimeout(t)
+    }
+  }, [])
+
+  function dismissFeedbackTooltip() {
+    setShowFeedbackTooltip(false)
+    localStorage.setItem('smartbrief:feedback-tooltip-shown', '1')
+  }
 
   const fetchNews = useCallback(async (category: string, mode: 'standard' | 'catchup' = 'standard', since?: string) => {
     try {
@@ -231,13 +260,81 @@ export default function HomePage() {
     )
   }
 
-  function handleFeedback(id: string, feedback: FeedbackType) {
-    if (feedback === 'hide-source') {
-      const article = articles.find((a) => a.id === id)
-      if (article) {
-        setArticles((prev) => prev.filter((a) => a.source !== article.source))
-      }
+  const FEEDBACK_LABELS: Record<FeedbackType, string> = {
+    'more-like-this': 'More like this saved',
+    'less-like-this': 'Less like this saved',
+    'too-negative':   'Marked too negative',
+    'off-topic':      'Marked off-topic',
+    'hide-source':    'Source hidden',
+  }
+
+  async function handleFeedback(id: string, feedback: FeedbackType) {
+    // Dismiss tooltip on first use
+    if (showFeedbackTooltip) dismissFeedbackTooltip()
+
+    // Clear any previous undo state
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    if (hideSourceTimerRef.current) clearTimeout(hideSourceTimerRef.current)
+
+    const article = articles.find((a) => a.id === id)
+    const source = article?.source ?? ''
+
+    // Write to SQLite immediately (spec: "not queued")
+    let feedbackId = ''
+    try {
+      const res = await fetch(`/api/articles/${id}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback, source }),
+      })
+      const data = await res.json() as { success: boolean; feedbackId?: string }
+      feedbackId = data.feedbackId ?? ''
+    } catch (err) {
+      console.error('Feedback error:', err)
     }
+
+    pendingFeedbackRef.current = { feedbackId, id, feedback, source }
+    setUndoToast(FEEDBACK_LABELS[feedback])
+
+    // Auto-dismiss toast after 5 s and apply deferred in-session effects
+    undoTimerRef.current = setTimeout(() => {
+      setUndoToast(null)
+      pendingFeedbackRef.current = null
+    }, 5000)
+
+    // Defer the in-session feed filter for hide-source so undo can still reverse it
+    if (feedback === 'hide-source' && article) {
+      hideSourceTimerRef.current = setTimeout(() => {
+        setArticles((prev) => prev.filter((a) => a.source !== article.source))
+      }, 5000)
+    }
+  }
+
+  function handleUndoFeedback() {
+    const pending = pendingFeedbackRef.current
+    if (!pending) return
+
+    // Cancel timers
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    if (hideSourceTimerRef.current) clearTimeout(hideSourceTimerRef.current)
+    pendingFeedbackRef.current = null
+    setUndoToast(null)
+
+    // Delete the DB record and reverse side effects
+    if (pending.feedbackId) {
+      fetch(`/api/articles/${pending.id}/feedback?feedbackId=${pending.feedbackId}`, {
+        method: 'DELETE',
+      }).catch(console.error)
+    }
+  }
+
+  function handleSkip(id: string) {
+    // Fire-and-forget implicit skip signal — no undo, no UI change
+    fetch(`/api/articles/${id}/signal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'skip' }),
+    }).catch((e) => console.error('[skip-signal] failed:', e))
   }
 
   const depthMode = preferences?.depthMode ?? 'skim'
@@ -302,6 +399,7 @@ export default function HomePage() {
   }
 
   const unifiedFeed = buildUnifiedFeed(displayedArticles, topStories)
+  const firstArticleId = (unifiedFeed.find((i) => i.kind === 'article') as { kind: 'article'; article: Article } | undefined)?.article.id ?? null
 
   return (
     <div>
@@ -444,7 +542,10 @@ export default function HomePage() {
                     onMarkRead={handleMarkRead}
                     onToggleSave={handleToggleSave}
                     onFeedback={handleFeedback}
+                    onSkip={handleSkip}
                     onSelect={(article) => setSelectedItem({ type: 'article', data: article })}
+                    showFeedbackTooltip={showFeedbackTooltip && item.article.id === firstArticleId}
+                    onFeedbackTooltipDismissed={dismissFeedbackTooltip}
                   />
                 )
               )}
@@ -478,6 +579,19 @@ export default function HomePage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Undo toast */}
+      {undoToast && (
+        <div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-gray-900 pl-4 pr-2 py-2.5 text-sm text-white shadow-lg">
+          <span>{undoToast}</span>
+          <button
+            onClick={handleUndoFeedback}
+            className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold transition-colors hover:bg-white/30"
+          >
+            Undo
+          </button>
+        </div>
       )}
 
       {/* Article Detail Modal */}

@@ -23,11 +23,18 @@ model Article {
   aiSummary          String?
   aiBullets          String?
   isRead             Boolean   @default(false)
+  readAt             DateTime?
   isSaved            Boolean   @default(false)
   fetchedAt          DateTime  @default(now())
   severity           String    @default("")
   isCriticalBreaking Boolean   @default(false)
   criticalPushedAt   DateTime?
+
+  @@index([publishedAt(sort: Desc)])
+  @@index([category, publishedAt(sort: Desc)])
+  @@index([readAt])
+  @@index([sentiment])
+  @@index([severity])
 }
 
 model TopStory {
@@ -58,6 +65,7 @@ model UserPreferences {
   quietHoursEnabled   Boolean  @default(false)
   quietHoursStart     String   @default("22:00")
   quietHoursEnd       String   @default("07:00")
+  learningEnabled     Boolean  @default(true)
   updatedAt           DateTime @updatedAt
 }
 
@@ -89,6 +97,7 @@ model ArticleFeedback {
   createdAt DateTime @default(now())
 
   @@index([articleId])
+  @@index([feedback, createdAt])
 }
 
 model SourceWeight {
@@ -98,4 +107,26 @@ model SourceWeight {
   lastAdjusted DateTime @default(now())
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model TopicWeight {
+  id           String   @id @default(cuid())
+  topic        String   @unique
+  weight       Float    @default(1.0)
+  lastAdjusted DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model FeedbackSignal {
+  id        String   @id @default(cuid())
+  articleId String
+  topic     String
+  source    String?
+  action    String
+  createdAt DateTime @default(now())
+
+  @@index([topic, createdAt])
+  @@index([source, createdAt])
+  @@index([action, createdAt])
 }

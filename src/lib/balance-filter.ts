@@ -1,9 +1,18 @@
 import type { Article, UserPreferences, BalanceStats } from '@/types'
 
-function makeSorter(weightMap: Record<string, number>) {
+function makeSorter(
+  weightMap: Record<string, number>,
+  topicWeightMap: Record<string, number> = {}
+) {
   return (a: Article, b: Article) => {
-    const scoreA = a.sentimentScore * (weightMap[a.source] ?? 1.0)
-    const scoreB = b.sentimentScore * (weightMap[b.source] ?? 1.0)
+    const scoreA =
+      a.sentimentScore *
+      (weightMap[a.source] ?? 1.0) *
+      (topicWeightMap[a.category] ?? 1.0)
+    const scoreB =
+      b.sentimentScore *
+      (weightMap[b.source] ?? 1.0) *
+      (topicWeightMap[b.category] ?? 1.0)
     if (scoreB !== scoreA) return scoreB - scoreA
     // Tie-break by recency
     return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
@@ -17,10 +26,12 @@ export function applyBalanceFilter(
   articles: Article[],
   preferences: UserPreferences,
   category?: string,
-  weightMap: Record<string, number> = {}
+  weightMap: Record<string, number> = {},
+  topicWeightMap: Record<string, number> = {}
 ): Article[] {
-  const hasWeights = Object.keys(weightMap).length > 0
-  const sort = hasWeights ? makeSorter(weightMap) : byDate
+  const hasWeights =
+    Object.keys(weightMap).length > 0 || Object.keys(topicWeightMap).length > 0
+  const sort = hasWeights ? makeSorter(weightMap, topicWeightMap) : byDate
 
   // Filter by category first
   let filtered = articles

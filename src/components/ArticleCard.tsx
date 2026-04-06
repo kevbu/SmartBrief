@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { clsx } from 'clsx'
 import { formatDistanceToNow } from 'date-fns'
 import type { Article, DepthMode, FeedbackType } from '@/types'
@@ -9,13 +10,18 @@ import BiasBadge from './BiasBadge'
 import FeedbackMenu from './FeedbackMenu'
 import { getEmojiForSource } from '@/lib/news-sources'
 
+const SKIP_VISIBILITY_MS = 3000 // 3s visible without interaction = skip signal
+
 interface ArticleCardProps {
   article: Article
   depthMode?: DepthMode
   onMarkRead: (id: string) => void
   onToggleSave: (id: string) => void
   onFeedback?: (id: string, feedback: FeedbackType) => void
+  onSkip?: (id: string) => void
   onSelect?: (article: Article) => void
+  showFeedbackTooltip?: boolean
+  onFeedbackTooltipDismissed?: () => void
 }
 
 export default function ArticleCard({
@@ -24,13 +30,67 @@ export default function ArticleCard({
   onMarkRead,
   onToggleSave,
   onFeedback,
+  onSkip,
   onSelect,
+  showFeedbackTooltip = false,
+  onFeedbackTooltipDismissed,
 }: ArticleCardProps) {
   const [isSaved, setIsSaved] = useState(article.isSaved)
   const [isRead, setIsRead] = useState(article.isRead)
   const [hidden, setHidden] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
+
+  // Skip signal: fire onSkip if article is visible >3s without being interacted with
+  const cardRef = useRef<HTMLElement>(null)
+  const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const interactedRef = useRef(article.isRead) // pre-read articles don't need skip
+
+  useEffect(() => {
+    if (!onSkip || interactedRef.current) return
+
+    const el = cardRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          skipTimerRef.current = setTimeout(() => {
+            if (!interactedRef.current) {
+              onSkip(article.id)
+              interactedRef.current = true // only fire once per card
+            }
+          }, SKIP_VISIBILITY_MS)
+        } else {
+          if (skipTimerRef.current !== null) {
+            clearTimeout(skipTimerRef.current)
+            skipTimerRef.current = null
+          }
+        }
+      },
+      { threshold: 0.5 }
+    )
+
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      if (skipTimerRef.current !== null) clearTimeout(skipTimerRef.current)
+    }
+  // article.id and onSkip are stable across card's lifetime — safe deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article.id])
 
   function handleClick() {
+    // Cancel skip timer — user interacted with this card
+    interactedRef.current = true
+    if (skipTimerRef.current !== null) {
+      clearTimeout(skipTimerRef.current)
+      skipTimerRef.current = null
+    }
+
+    if (collapsed) {
+      setCollapsed(false)
+      return
+    }
     if (!isRead) {
       setIsRead(true)
       onMarkRead(article.id)
@@ -52,10 +112,27 @@ export default function ArticleCard({
     onFeedback?.(article.id, feedback)
     if (feedback === 'hide-source') {
       setHidden(true)
+    } else if (feedback === 'off-topic') {
+      setCollapsed(true)
     }
   }
 
   if (hidden) return null
+
+  // Off-topic collapse: show a single stub row the user can tap to re-expand
+  if (collapsed) {
+    return (
+      <article
+        className="mx-4 mb-1 flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm opacity-50 transition-all active:scale-[0.99]"
+        onClick={handleClick}
+        aria-label="Off-topic story — tap to expand"
+      >
+        <span className="text-xs text-gray-400">🚫</span>
+        <p className="min-w-0 flex-1 truncate text-xs text-gray-400">{article.title}</p>
+        <span className="flex-shrink-0 text-[10px] text-gray-300">tap to expand</span>
+      </article>
+    )
+  }
 
   const timeAgo = formatDistanceToNow(new Date(article.publishedAt), {
     addSuffix: true,
@@ -70,6 +147,7 @@ export default function ArticleCard({
 
   return (
     <article
+      ref={cardRef}
       className={clsx(
         'mx-4 mb-3 cursor-pointer rounded-xl bg-white p-4 shadow-sm transition-all active:scale-[0.99]',
         isRead && 'opacity-60'
@@ -118,12 +196,14 @@ export default function ArticleCard({
               <FeedbackMenu
                 articleId={article.id}
                 source={article.source}
+                showTooltip={showFeedbackTooltip}
+                onTooltipDismissed={onFeedbackTooltipDismissed}
                 onFeedback={handleFeedback}
               />
               <button
                 onClick={handleSave}
                 className={clsx(
-                  'flex h-8 w-8 items-center justify-center rounded-full transition-colors',
+                  'flex h-11 w-11 items-center justify-center rounded-full transition-colors',
                   isSaved
                     ? 'text-blue-600'
                     : 'text-gray-300 hover:text-gray-400'
@@ -151,15 +231,13 @@ export default function ArticleCard({
 
         {/* Image */}
         {article.imageUrl && (
-          <div className="flex-shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg">
+            <Image
               src={article.imageUrl}
               alt=""
-              className="h-20 w-20 rounded-lg object-cover"
-              onError={(e) => {
-                ;(e.target as HTMLImageElement).style.display = 'none'
-              }}
+              fill
+              sizes="80px"
+              className="object-cover"
             />
           </div>
         )}

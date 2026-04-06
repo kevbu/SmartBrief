@@ -1,6 +1,13 @@
 import type { Metadata, Viewport } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import BottomNav from '@/components/BottomNav'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'SmartBrief – Your News, Balanced',
@@ -39,7 +46,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="SmartBrief" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="font-sans">
+      <body className={`${inter.variable} font-sans`}>
         <div className="mx-auto min-h-screen max-w-md">
           <main className="pb-24">{children}</main>
           <BottomNav />
