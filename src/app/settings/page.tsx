@@ -228,7 +228,6 @@ const MOOD_PRESETS: { value: MoodPreset; emoji: string; label: string; desc: str
 
 const SESSION_OPTIONS = [5, 10, 15, 20, 30]
 
-// Group sources by category for display
 const SOURCE_CATEGORY_LABELS: Record<string, string> = {
   technology: '🤖 Technology',
   science: '🧪 Science & Health',
@@ -237,13 +236,25 @@ const SOURCE_CATEGORY_LABELS: Record<string, string> = {
   positive: '✨ Bright Spots',
 }
 
-function getSourcesByCategory() {
-  const groups: Record<string, typeof NEWS_SOURCES> = {}
+const BIAS_LABELS: Record<string, string> = {
+  left: 'Left',
+  'center-left': 'Center-Left',
+  center: 'Center',
+  'center-right': 'Center-Right',
+  right: 'Right',
+}
+
+/** Two-level grouping: language → category → sources */
+function getSourcesByLanguageThenCategory() {
+  const result: Record<string, Record<string, typeof NEWS_SOURCES>> = { en: {}, de: {} }
   for (const source of NEWS_SOURCES) {
-    if (!groups[source.category]) groups[source.category] = []
-    groups[source.category].push(source)
+    const lang = source.language ?? 'en'
+    if (!result[lang]) result[lang] = {}
+    if (!result[lang][source.category]) result[lang][source.category] = []
+    result[lang][source.category].push(source)
   }
-  return groups
+  // Remove empty language buckets
+  return Object.fromEntries(Object.entries(result).filter(([, cats]) => Object.keys(cats).length > 0))
 }
 
 export default function SettingsPage() {
@@ -271,6 +282,10 @@ export default function SettingsPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [resetDone, setResetDone] = useState(false)
+
+  // Source list UI state
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [detailSource, setDetailSource] = useState<(typeof NEWS_SOURCES)[0] | null>(null)
 
   // Push notification state
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -601,7 +616,16 @@ export default function SettingsPage() {
     )
   }
 
-  const sourcesByCategory = getSourcesByCategory()
+  const sourcesByLanguage = getSourcesByLanguageThenCategory()
+
+  function toggleGroupCollapsed(key: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   return (
     <div>
@@ -702,66 +726,151 @@ export default function SettingsPage() {
         {/* News Sources */}
         <section className="rounded-xl bg-white p-4 shadow-sm">
           <h2 className="mb-1 text-base font-semibold text-gray-900">News Sources</h2>
-          <p className="mb-3 text-xs text-gray-500">Toggle individual sources on or off</p>
-          <div className="space-y-4">
-            {Object.entries(sourcesByCategory).map(([categoryId, sources]) => {
-              const allEnabled = sources.every((s) => isSourceEnabled(s.id))
-              return (
-                <div key={categoryId}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      {SOURCE_CATEGORY_LABELS[categoryId] ?? categoryId}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => selectAllInCategory(categoryId)}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        Select all
-                      </button>
-                      <span className="text-xs text-gray-300">·</span>
-                      <button
-                        onClick={() => deselectAllInCategory(categoryId)}
-                        className="text-xs text-gray-400 hover:underline"
-                      >
-                        Deselect all
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    {sources.map((source) => {
-                      const enabled = isSourceEnabled(source.id)
-                      return (
+          <p className="mb-3 text-xs text-gray-500">Toggle individual sources on or off. Tap a source name for details.</p>
+
+          {Object.entries(sourcesByLanguage).map(([lang, categoryMap]) => (
+            <div key={lang} className="mb-5 last:mb-0">
+              {/* Language header */}
+              <div className="mb-2 flex items-center gap-2 border-b border-gray-100 pb-1.5">
+                <span className="text-sm font-bold text-gray-700">
+                  {lang === 'de' ? '🇩🇪 German Sources' : '🇬🇧 English Sources'}
+                </span>
+                <span className="text-xs text-gray-400">
+                  ({Object.values(categoryMap).flat().length} sources)
+                </span>
+              </div>
+
+              {/* Category groups */}
+              <div className="space-y-3">
+                {Object.entries(categoryMap).map(([categoryId, sources]) => {
+                  const groupKey = `${lang}:${categoryId}`
+                  const isCollapsed = collapsedGroups.has(groupKey)
+                  const enabledCount = sources.filter((s) => isSourceEnabled(s.id)).length
+                  const total = sources.length
+
+                  return (
+                    <div key={categoryId}>
+                      {/* Category header row */}
+                      <div className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50">
                         <button
-                          key={source.id}
-                          onClick={() => toggleSource(source.id)}
-                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50"
+                          onClick={() => toggleGroupCollapsed(groupKey)}
+                          className="flex flex-1 items-center gap-2 text-left"
+                          aria-expanded={!isCollapsed}
                         >
-                          <span className="flex items-center gap-2 text-sm text-gray-700">
-                            <span>{source.logoEmoji}</span>
-                            <span className="font-medium">{source.name}</span>
-                            <span
-                              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-                                source.language === 'de'
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : 'bg-gray-100 text-gray-500'
-                              }`}
-                            >
-                              {source.language.toUpperCase()}
-                            </span>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            className={`h-3 w-3 flex-shrink-0 text-gray-400 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m19 9-7 7-7-7" />
+                          </svg>
+                          <span className="text-xs font-semibold text-gray-600">
+                            {SOURCE_CATEGORY_LABELS[categoryId] ?? categoryId}
                           </span>
-                          <div className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-200'}`}>
-                            <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                          </div>
+                          <span className="text-[10px] text-gray-400">
+                            {enabledCount === total ? `${total} enabled` : `${enabledCount}/${total} enabled`}
+                          </span>
                         </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => selectAllInCategory(categoryId)}
+                            className="text-[11px] text-blue-600 hover:underline"
+                          >
+                            All
+                          </button>
+                          <span className="text-[11px] text-gray-300">·</span>
+                          <button
+                            onClick={() => deselectAllInCategory(categoryId)}
+                            className="text-[11px] text-gray-400 hover:underline"
+                          >
+                            None
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Source rows */}
+                      {!isCollapsed && (
+                        <div className="mt-1 space-y-0.5 pl-2">
+                          {sources.map((source) => {
+                            const enabled = isSourceEnabled(source.id)
+                            return (
+                              <div
+                                key={source.id}
+                                className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 ${!enabled ? 'opacity-50' : ''}`}
+                              >
+                                {/* Left: emoji + name (tappable for detail) + badges */}
+                                <div className="flex min-w-0 flex-1 items-center gap-2">
+                                  <span className="text-base leading-none">{source.logoEmoji}</span>
+                                  <button
+                                    onClick={() => setDetailSource(source)}
+                                    className="truncate text-sm font-medium text-gray-800 hover:underline focus:outline-none"
+                                    aria-label={`${source.name} — tap for details`}
+                                  >
+                                    {source.name}
+                                  </button>
+                                  <span className="flex-shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
+                                    {BIAS_LABELS[source.bias] ?? source.bias}
+                                  </span>
+                                </div>
+                                {/* Toggle */}
+                                <button
+                                  onClick={() => toggleSource(source.id)}
+                                  className="ml-3 flex-shrink-0"
+                                  aria-label={`${enabled ? 'Disable' : 'Enable'} ${source.name}`}
+                                  aria-pressed={enabled}
+                                >
+                                  <div className={`relative h-5 w-9 rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                    <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                  </div>
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </section>
+
+        {/* Source detail popover */}
+        {detailSource && (
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4"
+            onClick={() => setDetailSource(null)}
+          >
+            <div
+              className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-3 flex items-center gap-3">
+                <span className="text-3xl">{detailSource.logoEmoji}</span>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">{detailSource.name}</h3>
+                  <p className="text-xs text-gray-500">{BIAS_LABELS[detailSource.bias] ?? detailSource.bias} · {detailSource.language.toUpperCase()} · {SOURCE_CATEGORY_LABELS[detailSource.category] ?? detailSource.category}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">RSS Feed</p>
+                  <p className="mt-0.5 break-all text-xs text-gray-600 font-mono">{detailSource.url}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDetailSource(null)}
+                className="mt-4 w-full rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Avoid Topics */}
         <section className="rounded-xl bg-white p-4 shadow-sm">

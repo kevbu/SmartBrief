@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/Header'
 import TopicTabs from '@/components/TopicTabs'
 import TopStoryCard from '@/components/TopStoryCard'
@@ -64,6 +64,31 @@ export default function HomePage() {
   const [catchUpGapDays, setCatchUpGapDays] = useState(0)
   const [catchUpSince, setCatchUpSince] = useState<string | null>(null)
   const [catchUpDismissed, setCatchUpDismissed] = useState(false)
+
+  // Feedback — undo toast (5 s window before API write)
+  const [undoToast, setUndoToast] = useState<string | null>(null)
+  const pendingFeedbackRef = useRef<{
+    timer: ReturnType<typeof setTimeout>
+    id: string
+    feedback: FeedbackType
+    source: string
+  } | null>(null)
+
+  // First-time discovery tooltip
+  const [showFeedbackTooltip, setShowFeedbackTooltip] = useState(false)
+  useEffect(() => {
+    if (!localStorage.getItem('smartbrief:feedback-tooltip-shown')) {
+      setShowFeedbackTooltip(true)
+      // Auto-dismiss after 6 s if user never taps the button
+      const t = setTimeout(() => setShowFeedbackTooltip(false), 6000)
+      return () => clearTimeout(t)
+    }
+  }, [])
+
+  function dismissFeedbackTooltip() {
+    setShowFeedbackTooltip(false)
+    localStorage.setItem('smartbrief:feedback-tooltip-shown', '1')
+  }
 
   const fetchNews = useCallback(async (category: string, mode: 'standard' | 'catchup' = 'standard', since?: string) => {
     try {
@@ -231,13 +256,53 @@ export default function HomePage() {
     )
   }
 
+  const FEEDBACK_LABELS: Record<FeedbackType, string> = {
+    'more-like-this': 'More like this saved',
+    'less-like-this': 'Less like this saved',
+    'too-negative':   'Marked too negative',
+    'off-topic':      'Marked off-topic',
+    'hide-source':    'Source hidden',
+  }
+
   function handleFeedback(id: string, feedback: FeedbackType) {
-    if (feedback === 'hide-source') {
-      const article = articles.find((a) => a.id === id)
-      if (article) {
+    // Dismiss tooltip on first use
+    if (showFeedbackTooltip) dismissFeedbackTooltip()
+
+    // Cancel any in-flight pending feedback (replace it)
+    if (pendingFeedbackRef.current) {
+      clearTimeout(pendingFeedbackRef.current.timer)
+    }
+
+    const article = articles.find((a) => a.id === id)
+    const source = article?.source ?? ''
+
+    setUndoToast(FEEDBACK_LABELS[feedback])
+
+    const timer = setTimeout(() => {
+      fetch(`/api/articles/${id}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback, source }),
+      }).catch(console.error)
+
+      // Only filter the feed after the undo window closes
+      if (feedback === 'hide-source' && article) {
         setArticles((prev) => prev.filter((a) => a.source !== article.source))
       }
+
+      pendingFeedbackRef.current = null
+      setUndoToast(null)
+    }, 5000)
+
+    pendingFeedbackRef.current = { timer, id, feedback, source }
+  }
+
+  function handleUndoFeedback() {
+    if (pendingFeedbackRef.current) {
+      clearTimeout(pendingFeedbackRef.current.timer)
+      pendingFeedbackRef.current = null
     }
+    setUndoToast(null)
   }
 
   const depthMode = preferences?.depthMode ?? 'skim'
@@ -302,6 +367,7 @@ export default function HomePage() {
   }
 
   const unifiedFeed = buildUnifiedFeed(displayedArticles, topStories)
+  const firstArticleId = (unifiedFeed.find((i) => i.kind === 'article') as { kind: 'article'; article: Article } | undefined)?.article.id ?? null
 
   return (
     <div>
@@ -445,6 +511,8 @@ export default function HomePage() {
                     onToggleSave={handleToggleSave}
                     onFeedback={handleFeedback}
                     onSelect={(article) => setSelectedItem({ type: 'article', data: article })}
+                    showFeedbackTooltip={showFeedbackTooltip && item.article.id === firstArticleId}
+                    onFeedbackTooltipDismissed={dismissFeedbackTooltip}
                   />
                 )
               )}
@@ -478,6 +546,19 @@ export default function HomePage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Undo toast */}
+      {undoToast && (
+        <div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-gray-900 pl-4 pr-2 py-2.5 text-sm text-white shadow-lg">
+          <span>{undoToast}</span>
+          <button
+            onClick={handleUndoFeedback}
+            className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold transition-colors hover:bg-white/30"
+          >
+            Undo
+          </button>
+        </div>
       )}
 
       {/* Article Detail Modal */}
