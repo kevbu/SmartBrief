@@ -168,12 +168,70 @@ function WebhookSection() {
 
   if (status === 'not-configured') {
     return (
-      <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600">
-        <p className="font-semibold text-gray-700 mb-1">Webhook (n8n / Zapier / Mailgun)</p>
-        <p>
-          Set <code className="rounded bg-gray-200 px-1 font-mono">NEWSLETTER_INGEST_SECRET</code> in your environment
-          to enable a POST webhook endpoint for automation tools.
-        </p>
+      <div className="space-y-3">
+        <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800">
+          <p className="font-semibold mb-1">Setup required</p>
+          <p>
+            Add <code className="rounded bg-amber-100 px-1 font-mono">NEWSLETTER_INGEST_SECRET=your-secret</code> to
+            your <code className="rounded bg-amber-100 px-1 font-mono">docker-compose.yml</code> and restart the container.
+            Then use any of the integrations below to forward newsletters.
+          </p>
+        </div>
+
+        {/* n8n */}
+        <div className="rounded-lg border border-gray-100 p-3 text-xs">
+          <p className="font-semibold text-gray-800 mb-1">n8n</p>
+          <ol className="list-decimal list-inside space-y-1 text-gray-600">
+            <li>Add an <strong>Email Trigger</strong> (or Gmail/IMAP node)</li>
+            <li>Connect an <strong>HTTP Request</strong> node:
+              <ul className="ml-4 mt-0.5 space-y-0.5 list-disc list-inside">
+                <li>Method: POST</li>
+                <li>URL: <code className="rounded bg-gray-100 px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
+                <li>Header: <code className="rounded bg-gray-100 px-1 font-mono">x-ingest-secret: your-secret</code></li>
+                <li>Body: <code className="rounded bg-gray-100 px-1 font-mono">{'{"subject":"{{$json.subject}}","from":"{{$json.from}}","html":"{{$json.html}}"}'}</code></li>
+              </ul>
+            </li>
+          </ol>
+        </div>
+
+        {/* Zapier */}
+        <div className="rounded-lg border border-gray-100 p-3 text-xs">
+          <p className="font-semibold text-gray-800 mb-1">Zapier</p>
+          <ol className="list-decimal list-inside space-y-1 text-gray-600">
+            <li>Trigger: <strong>Email by Zapier</strong> (or Gmail: New Email)</li>
+            <li>Action: <strong>Webhooks by Zapier → POST</strong></li>
+            <li>URL: <code className="rounded bg-gray-100 px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
+            <li>Payload type: <strong>JSON</strong> — map <code className="font-mono">subject</code>, <code className="font-mono">from</code>, <code className="font-mono">html</code></li>
+            <li>Header: <code className="rounded bg-gray-100 px-1 font-mono">x-ingest-secret: your-secret</code></li>
+          </ol>
+        </div>
+
+        {/* Make (Integromat) */}
+        <div className="rounded-lg border border-gray-100 p-3 text-xs">
+          <p className="font-semibold text-gray-800 mb-1">Make (Integromat)</p>
+          <ol className="list-decimal list-inside space-y-1 text-gray-600">
+            <li>Add an <strong>Email → Watch Emails</strong> module</li>
+            <li>Add an <strong>HTTP → Make a request</strong> module:
+              <ul className="ml-4 mt-0.5 space-y-0.5 list-disc list-inside">
+                <li>Method: POST · Content-Type: application/json</li>
+                <li>URL: <code className="rounded bg-gray-100 px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
+                <li>Header: <code className="rounded bg-gray-100 px-1 font-mono">x-ingest-secret: your-secret</code></li>
+                <li>Body: map Subject, From address, HTML body</li>
+              </ul>
+            </li>
+          </ol>
+        </div>
+
+        {/* Mailgun */}
+        <div className="rounded-lg border border-gray-100 p-3 text-xs">
+          <p className="font-semibold text-gray-800 mb-1">Mailgun inbound routing</p>
+          <ol className="list-decimal list-inside space-y-1 text-gray-600">
+            <li>In Mailgun → Receiving, create a Route with filter <code className="rounded bg-gray-100 px-1 font-mono">match_recipient(&quot;newsletters@your-mailgun-domain.com&quot;)</code></li>
+            <li>Action: <strong>forward</strong> to <code className="rounded bg-gray-100 px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
+            <li>Add custom header <code className="rounded bg-gray-100 px-1 font-mono">x-ingest-secret: your-secret</code> in the route</li>
+            <li>Forward newsletters to <code className="rounded bg-gray-100 px-1 font-mono">newsletters@your-mailgun-domain.com</code></li>
+          </ol>
+        </div>
       </div>
     )
   }
