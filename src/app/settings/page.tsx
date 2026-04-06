@@ -801,7 +801,7 @@ export default function SettingsPage() {
                                 key={source.id}
                                 className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 ${!enabled ? 'opacity-50' : ''}`}
                               >
-                                {/* Left: emoji + name (tappable for detail) + badges */}
+                                {/* Left: emoji + name (tappable for detail) + language badge + bias badge */}
                                 <div className="flex min-w-0 flex-1 items-center gap-2">
                                   <span className="text-base leading-none">{source.logoEmoji}</span>
                                   <button
@@ -811,6 +811,9 @@ export default function SettingsPage() {
                                   >
                                     {source.name}
                                   </button>
+                                  <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${source.language === 'de' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    {source.language.toUpperCase()}
+                                  </span>
                                   <span className="flex-shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
                                     {BIAS_LABELS[source.bias] ?? source.bias}
                                   </span>

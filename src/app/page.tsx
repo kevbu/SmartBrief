@@ -65,14 +65,18 @@ export default function HomePage() {
   const [catchUpSince, setCatchUpSince] = useState<string | null>(null)
   const [catchUpDismissed, setCatchUpDismissed] = useState(false)
 
-  // Feedback — undo toast (5 s window before API write)
+  // Feedback — undo toast: write immediately, allow DELETE within 5 s
   const [undoToast, setUndoToast] = useState<string | null>(null)
   const pendingFeedbackRef = useRef<{
-    timer: ReturnType<typeof setTimeout>
-    id: string
+    feedbackId: string
+    id: string        // articleId
     feedback: FeedbackType
     source: string
   } | null>(null)
+  // Separate timer ref: only used to defer the in-session hide-source feed filter
+  const hideSourceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Auto-dismiss undo toast after 5 s
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // First-time discovery tooltip
   const [showFeedbackTooltip, setShowFeedbackTooltip] = useState(false)
@@ -264,45 +268,64 @@ export default function HomePage() {
     'hide-source':    'Source hidden',
   }
 
-  function handleFeedback(id: string, feedback: FeedbackType) {
+  async function handleFeedback(id: string, feedback: FeedbackType) {
     // Dismiss tooltip on first use
     if (showFeedbackTooltip) dismissFeedbackTooltip()
 
-    // Cancel any in-flight pending feedback (replace it)
-    if (pendingFeedbackRef.current) {
-      clearTimeout(pendingFeedbackRef.current.timer)
-    }
+    // Clear any previous undo state
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    if (hideSourceTimerRef.current) clearTimeout(hideSourceTimerRef.current)
 
     const article = articles.find((a) => a.id === id)
     const source = article?.source ?? ''
 
-    setUndoToast(FEEDBACK_LABELS[feedback])
-
-    const timer = setTimeout(() => {
-      fetch(`/api/articles/${id}/feedback`, {
+    // Write to SQLite immediately (spec: "not queued")
+    let feedbackId = ''
+    try {
+      const res = await fetch(`/api/articles/${id}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ feedback, source }),
-      }).catch(console.error)
+      })
+      const data = await res.json() as { success: boolean; feedbackId?: string }
+      feedbackId = data.feedbackId ?? ''
+    } catch (err) {
+      console.error('Feedback error:', err)
+    }
 
-      // Only filter the feed after the undo window closes
-      if (feedback === 'hide-source' && article) {
-        setArticles((prev) => prev.filter((a) => a.source !== article.source))
-      }
+    pendingFeedbackRef.current = { feedbackId, id, feedback, source }
+    setUndoToast(FEEDBACK_LABELS[feedback])
 
-      pendingFeedbackRef.current = null
+    // Auto-dismiss toast after 5 s and apply deferred in-session effects
+    undoTimerRef.current = setTimeout(() => {
       setUndoToast(null)
+      pendingFeedbackRef.current = null
     }, 5000)
 
-    pendingFeedbackRef.current = { timer, id, feedback, source }
+    // Defer the in-session feed filter for hide-source so undo can still reverse it
+    if (feedback === 'hide-source' && article) {
+      hideSourceTimerRef.current = setTimeout(() => {
+        setArticles((prev) => prev.filter((a) => a.source !== article.source))
+      }, 5000)
+    }
   }
 
   function handleUndoFeedback() {
-    if (pendingFeedbackRef.current) {
-      clearTimeout(pendingFeedbackRef.current.timer)
-      pendingFeedbackRef.current = null
-    }
+    const pending = pendingFeedbackRef.current
+    if (!pending) return
+
+    // Cancel timers
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    if (hideSourceTimerRef.current) clearTimeout(hideSourceTimerRef.current)
+    pendingFeedbackRef.current = null
     setUndoToast(null)
+
+    // Delete the DB record and reverse side effects
+    if (pending.feedbackId) {
+      fetch(`/api/articles/${pending.id}/feedback?feedbackId=${pending.feedbackId}`, {
+        method: 'DELETE',
+      }).catch(console.error)
+    }
   }
 
   const depthMode = preferences?.depthMode ?? 'skim'
