@@ -703,6 +703,8 @@ export default function SettingsPage() {
   const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('default')
   const [pushRegistering, setPushRegistering] = useState(false)
   const [pushError, setPushError] = useState<string | null>(null)
+  const [pushTestResult, setPushTestResult] = useState<{ ok: boolean; message: string } | null>(null)
+  const [pushTesting, setPushTesting] = useState(false)
   const [notifHistory, setNotifHistory] = useState<Array<{ id: string; title: string; body: string; sentAt: string }>>([])
   useEffect(() => {
     fetch('/api/push/history')
@@ -1015,6 +1017,20 @@ export default function SettingsPage() {
       setPushError('Failed to update push notifications. Try again.')
     } finally {
       setPushRegistering(false)
+    }
+  }
+
+  async function handlePushTest() {
+    setPushTesting(true)
+    setPushTestResult(null)
+    try {
+      const r = await fetch('/api/push/test', { method: 'POST' })
+      const d = await r.json() as { ok: boolean; error?: string }
+      setPushTestResult({ ok: d.ok, message: d.ok ? 'Test notification sent!' : (d.error ?? 'Failed') })
+    } catch {
+      setPushTestResult({ ok: false, message: 'Request failed' })
+    } finally {
+      setPushTesting(false)
     }
   }
 
@@ -1475,6 +1491,24 @@ export default function SettingsPage() {
 
               {pushError && (
                 <p className="text-xs text-red-500">{pushError}</p>
+              )}
+
+              {/* Test button — only when push is enabled */}
+              {pushEnabled && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handlePushTest}
+                    disabled={pushTesting}
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {pushTesting ? 'Sending…' : 'Send test notification'}
+                  </button>
+                  {pushTestResult && (
+                    <p className={`text-xs ${pushTestResult.ok ? 'text-green-600' : 'text-red-500'}`}>
+                      {pushTestResult.message}
+                    </p>
+                  )}
+                </div>
               )}
 
               {/* Notification history — last 20 sent, always visible when push is supported */}

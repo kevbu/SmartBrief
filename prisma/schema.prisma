@@ -119,6 +119,14 @@ model TopicWeight {
   updatedAt    DateTime @updatedAt
 }
 
+model AppEvent {
+  id        String   @id @default(cuid())
+  action    String
+  createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
+}
+
 model NotificationLog {
   id        String   @id @default(cuid())
   storyId   String

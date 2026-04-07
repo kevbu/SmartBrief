@@ -35,6 +35,11 @@ export default function RecapPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [period, setPeriod] = useState(7)
 
+  // Log recap_viewed event once on mount for the weekly usage metric
+  useEffect(() => {
+    fetch('/api/recap/viewed', { method: 'POST' }).catch(() => null)
+  }, [])
+
   useEffect(() => {
     async function load() {
       setIsLoading(true)
