@@ -59,7 +59,7 @@ export default function FeedbackMenu({
       {/* Trigger — 44×44 px hit area (iOS HIG) */}
       <button
         onClick={handleTrigger}
-        className="flex h-11 w-11 items-center justify-center rounded-full text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-500 active:bg-gray-100"
+        className="flex h-11 w-11 items-center justify-center rounded-full text-gray-300 transition-colors hover:bg-gray-100 hover:text-gray-500 active:bg-gray-100 dark:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-400 dark:active:bg-gray-800"
         aria-label="Article feedback"
         aria-expanded={open}
         aria-haspopup="menu"
@@ -90,10 +90,10 @@ export default function FeedbackMenu({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-1 w-48 rounded-xl border border-gray-100 bg-white py-1 shadow-lg"
+          className="absolute right-0 z-30 mt-1 w-48 rounded-xl border border-gray-100 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
           onClick={(e) => e.stopPropagation()}
         >
-          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
             Tune your feed
           </p>
           {FEEDBACK_OPTIONS.map((opt) => (
@@ -101,7 +101,7 @@ export default function FeedbackMenu({
               key={opt.value}
               role="menuitem"
               onClick={() => handleFeedback(opt.value)}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <span>{opt.emoji}</span>
               {opt.label}

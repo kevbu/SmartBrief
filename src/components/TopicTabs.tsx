@@ -31,7 +31,7 @@ export default function TopicTabs({
               'flex-shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all',
               isActive
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
             )}
           >
             {cat.label}

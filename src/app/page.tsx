@@ -32,15 +32,15 @@ const TOPIC_LABELS: Record<string, string> = {
 
 function SkeletonCard() {
   return (
-    <div className="mx-4 mb-3 rounded-xl bg-white p-4 shadow-sm">
+    <div className="mx-4 mb-3 rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
       <div className="mb-2 flex gap-2">
-        <div className="h-3 w-12 animate-pulse rounded bg-gray-100" />
-        <div className="h-3 w-8 animate-pulse rounded bg-gray-100" />
+        <div className="h-3 w-12 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+        <div className="h-3 w-8 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
       </div>
-      <div className="mb-1.5 h-4 w-full animate-pulse rounded bg-gray-100" />
-      <div className="mb-3 h-4 w-3/4 animate-pulse rounded bg-gray-100" />
-      <div className="h-3 w-full animate-pulse rounded bg-gray-100" />
-      <div className="mt-1 h-3 w-2/3 animate-pulse rounded bg-gray-100" />
+      <div className="mb-1.5 h-4 w-full animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+      <div className="mb-3 h-4 w-3/4 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+      <div className="h-3 w-full animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+      <div className="mt-1 h-3 w-2/3 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
     </div>
   )
 }
@@ -438,17 +438,17 @@ export default function HomePage() {
       />
 
       {!hasApiKey && (
-        <div className="mx-4 mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+        <div className="mx-4 mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
           <strong>AI features disabled.</strong> Add your{' '}
-          <code className="rounded bg-amber-100 px-1">ANTHROPIC_API_KEY</code>{' '}
+          <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/40">ANTHROPIC_API_KEY</code>{' '}
           to{' '}
-          <code className="rounded bg-amber-100 px-1">.env.local</code>{' '}
+          <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/40">.env.local</code>{' '}
           to enable sentiment analysis and smart summaries.
         </div>
       )}
 
       {error && (
-        <div className="mx-4 mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700">
+        <div className="mx-4 mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/50 dark:text-red-400">
           {error}
         </div>
       )}
@@ -491,8 +491,8 @@ export default function HomePage() {
           {/* Depth mode toggle */}
           {articles.length > 0 && (
             <div className="mx-4 mb-2 flex items-center gap-2">
-              <span className="text-xs text-gray-400">View:</span>
-              <div className="flex rounded-lg bg-gray-100 p-0.5">
+              <span className="text-xs text-gray-400 dark:text-gray-500">View:</span>
+              <div className="flex rounded-lg bg-gray-100 p-0.5 dark:bg-gray-800">
                 {(['skim', 'deep'] as const).map((mode) => (
                   <button
                     key={mode}
@@ -513,8 +513,8 @@ export default function HomePage() {
                     }}
                     className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
                       depthMode === mode
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-gray-500'
+                        ? 'bg-white text-slate-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+                        : 'text-gray-500 dark:text-gray-400'
                     }`}
                   >
                     {mode === 'skim' ? '⚡ Skim' : '📖 Deep'}
@@ -544,10 +544,10 @@ export default function HomePage() {
           ) : articles.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <span className="mb-3 text-4xl">📰</span>
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 No articles yet
               </p>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                 Tap the refresh button to fetch news
               </p>
             </div>
@@ -578,12 +578,12 @@ export default function HomePage() {
 
               {/* Show session complete / load more when not expanded */}
               {!sessionExpanded && articles.length > sessionLimit && (
-                <div className="mx-4 mb-4 mt-2 rounded-2xl bg-emerald-50 p-5 text-center">
+                <div className="mx-4 mb-4 mt-2 rounded-2xl bg-emerald-50 p-5 text-center dark:bg-emerald-950/50">
                   <div className="mb-2 text-3xl">🌟</div>
-                  <h3 className="mb-1 text-base font-bold text-emerald-800">
+                  <h3 className="mb-1 text-base font-bold text-emerald-800 dark:text-emerald-200">
                     {catchUpMode && !catchUpDismissed ? "You're caught up!" : 'Briefing complete!'}
                   </h3>
-                  <p className="mb-3 text-xs text-emerald-600">
+                  <p className="mb-3 text-xs text-emerald-600 dark:text-emerald-400">
                     {catchUpMode && !catchUpDismissed
                       ? `Top stories from the last ${catchUpGapDays} days. Great job catching up.`
                       : `You've read your ${sessionLimit}-story brief. Great job staying informed.`}
@@ -601,17 +601,17 @@ export default function HomePage() {
               {!sessionExpanded && articles.length > sessionLimit && recapTeaser && recapTeaser.totalRead > 0 && (
                 <Link
                   href="/recap"
-                  className="mx-4 mb-4 flex items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 active:scale-98 transition-transform"
+                  className="mx-4 mb-4 flex items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 active:scale-98 transition-transform dark:bg-indigo-950/50"
                 >
                   <div>
-                    <p className="text-xs font-semibold text-indigo-700">This Week</p>
-                    <p className="mt-0.5 text-[11px] text-indigo-500 leading-snug">
+                    <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">This Week</p>
+                    <p className="mt-0.5 text-[11px] text-indigo-500 leading-snug dark:text-indigo-400">
                       You read {recapTeaser.totalRead} {recapTeaser.totalRead === 1 ? 'story' : 'stories'} this week
                       {recapTeaser.topTopic ? ` — mostly ${TOPIC_LABELS[recapTeaser.topTopic] ?? recapTeaser.topTopic}` : ''}.
                       Tap to see your full recap.
                     </p>
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="ml-3 h-4 w-4 flex-shrink-0 text-indigo-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="ml-3 h-4 w-4 flex-shrink-0 text-indigo-400 dark:text-indigo-500">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                   </svg>
                 </Link>

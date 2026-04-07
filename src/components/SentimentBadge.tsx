@@ -19,8 +19,8 @@ export default function SentimentBadge({
       className={clsx(
         'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
         {
-          'bg-emerald-50 text-emerald-700': sentiment === 'positive',
-          'bg-amber-50 text-amber-700': sentiment === 'negative',
+          'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': sentiment === 'positive',
+          'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': sentiment === 'negative',
         },
         className
       )}

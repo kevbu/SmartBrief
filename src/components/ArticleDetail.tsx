@@ -92,9 +92,9 @@ export default function ArticleDetail({
     if (article) {
       const timeAgo = formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })
       return (
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+        <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
           <span>{getEmojiForSource(article.source)}</span>
-          <span className="font-medium text-gray-500">{article.source}</span>
+          <span className="font-medium text-gray-500 dark:text-gray-400">{article.source}</span>
           <span>·</span>
           <span>{timeAgo}</span>
         </div>
@@ -111,12 +111,12 @@ export default function ArticleDetail({
         sources = []
       }
       return (
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
           <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white">Top Story</span>
           {sources.slice(0, 3).map((s) => (
             <span key={s} className="flex items-center gap-0.5">
               <span>{getEmojiForSource(s)}</span>
-              <span className="font-medium text-gray-500">{s}</span>
+              <span className="font-medium text-gray-500 dark:text-gray-400">{s}</span>
             </span>
           ))}
           {sources.length > 3 && (
@@ -140,10 +140,10 @@ export default function ArticleDetail({
       />
 
       {/* Bottom sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl dark:bg-gray-900">
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1">
-          <div className="h-1 w-10 rounded-full bg-gray-300" />
+          <div className="h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" />
         </div>
 
         <div className="px-5 pb-8 pt-2">
@@ -153,39 +153,39 @@ export default function ArticleDetail({
           </div>
 
           {/* Headline */}
-          <h2 className="mb-3 text-xl font-bold leading-snug text-gray-900">
+          <h2 className="mb-3 text-xl font-bold leading-snug text-gray-900 dark:text-gray-100">
             {title}
           </h2>
 
           {/* Why am I seeing this? */}
           {article?.reason ? (
-            <p className="mb-3 flex items-center gap-1 text-[11px] text-gray-400">
+            <p className="mb-3 flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
               <span>✦</span>
               <span>{article.reason}</span>
             </p>
           ) : null}
 
           {/* Divider */}
-          <div className="mb-4 border-t border-gray-100" />
+          <div className="mb-4 border-t border-gray-100 dark:border-gray-800" />
 
           {/* Bullets or skeleton */}
           {loading ? (
             <div className="mb-4 space-y-2">
-              <div className="h-4 w-full animate-pulse rounded bg-gray-100" />
-              <div className="h-4 w-5/6 animate-pulse rounded bg-gray-100" />
-              <div className="h-4 w-4/5 animate-pulse rounded bg-gray-100" />
+              <div className="h-4 w-full animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+              <div className="h-4 w-5/6 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+              <div className="h-4 w-4/5 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
             </div>
           ) : bullets.length > 0 ? (
             <ul className="mb-4 space-y-2">
               {bullets.map((bullet, i) => (
-                <li key={i} className="flex gap-2 text-sm leading-relaxed text-gray-700">
-                  <span className="mt-0.5 flex-shrink-0 text-gray-400">•</span>
+                <li key={i} className="flex gap-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                  <span className="mt-0.5 flex-shrink-0 text-gray-400 dark:text-gray-600">•</span>
                   <span>{bullet}</span>
                 </li>
               ))}
             </ul>
           ) : description ? (
-            <p className="mb-4 text-sm leading-relaxed text-gray-600">{description}</p>
+            <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">{description}</p>
           ) : null}
 
           {/* Read full article button(s) */}
@@ -198,17 +198,17 @@ export default function ArticleDetail({
                     href={a.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                   >
                     <span className="flex items-center gap-2">
                       <span>{getEmojiForSource(a.source)}</span>
                       <span>Read at {a.source}</span>
                     </span>
-                    <span className="text-gray-400">→</span>
+                    <span className="text-gray-400 dark:text-gray-500">→</span>
                   </a>
                 ))
               ) : (
-                <p className="text-center text-sm text-gray-400">No source articles available</p>
+                <p className="text-center text-sm text-gray-400 dark:text-gray-500">No source articles available</p>
               )
             ) : article ? (
               <a

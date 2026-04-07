@@ -30,18 +30,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg dark:bg-gray-900">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-slate-900">SmartBrief</h1>
-          <p className="mt-1 text-sm text-gray-500">Your personal news briefing</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-gray-100">SmartBrief</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Your personal news briefing</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label
               htmlFor="password"
-              className="mb-1.5 block text-sm font-medium text-gray-700"
+              className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
               Password
             </label>
@@ -52,7 +52,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoFocus
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-600 dark:focus:border-gray-500 dark:focus:ring-gray-500"
               placeholder="Enter your password"
             />
           </div>

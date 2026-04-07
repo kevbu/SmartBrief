@@ -65,14 +65,14 @@ function ImapSection() {
     }
   }
 
-  if (!status) return <p className="text-xs text-gray-400">Loading…</p>
+  if (!status) return <p className="text-xs text-gray-400 dark:text-gray-500">Loading…</p>
 
   if (!status.configured) {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1.5">
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1.5 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300">
         <p className="font-semibold">IMAP polling — not configured</p>
-        <p>Add these to your <code className="rounded bg-amber-100 px-1 font-mono">.env</code> / docker-compose and restart:</p>
-        <pre className="rounded bg-amber-100 p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
+        <p>Add these to your <code className="rounded bg-amber-100 px-1 font-mono dark:bg-amber-900/40">.env</code> / docker-compose and restart:</p>
+        <pre className="rounded bg-amber-100 p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap dark:bg-amber-900/40">
 {`IMAP_HOST=imap.gmail.com
 IMAP_PORT=993
 IMAP_USER=you@gmail.com
@@ -80,7 +80,7 @@ IMAP_PASS=your-app-password
 IMAP_FOLDER=SmartBrief
 IMAP_POLL_INTERVAL_MINS=30`}
         </pre>
-        <p className="text-amber-700">
+        <p className="text-amber-700 dark:text-amber-400">
           For Gmail, create a label called <strong>SmartBrief</strong> and an app-specific password
           at <em>myaccount.google.com › Security › App passwords</em>.
         </p>
@@ -95,12 +95,12 @@ IMAP_POLL_INTERVAL_MINS=30`}
   return (
     <div className="space-y-3">
       {/* Status card */}
-      <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2.5 text-xs space-y-1">
-        <p className="font-semibold text-green-800">IMAP polling active</p>
-        <p className="text-green-700">{status.user} · {status.host} · folder: <strong>{status.folder}</strong></p>
-        <p className="text-green-700">Interval: every {status.pollIntervalMins} min · Last polled: {lastPollLabel}</p>
+      <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2.5 text-xs space-y-1 dark:bg-green-950/50 dark:border-green-900">
+        <p className="font-semibold text-green-800 dark:text-green-300">IMAP polling active</p>
+        <p className="text-green-700 dark:text-green-400">{status.user} · {status.host} · folder: <strong>{status.folder}</strong></p>
+        <p className="text-green-700 dark:text-green-400">Interval: every {status.pollIntervalMins} min · Last polled: {lastPollLabel}</p>
         {typeof status.newsletterCount === 'number' && (
-          <p className="text-green-700">{status.newsletterCount} newsletter article{status.newsletterCount === 1 ? '' : 's'} ingested</p>
+          <p className="text-green-700 dark:text-green-400">{status.newsletterCount} newsletter article{status.newsletterCount === 1 ? '' : 's'} ingested</p>
         )}
       </div>
 
@@ -116,7 +116,7 @@ IMAP_POLL_INTERVAL_MINS=30`}
         <button
           onClick={handleTest}
           disabled={testing}
-          className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-60"
+          className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
         >
           {testing ? 'Testing…' : 'Test connection'}
         </button>
@@ -124,12 +124,12 @@ IMAP_POLL_INTERVAL_MINS=30`}
 
       {/* Feedback */}
       {fetchResult && (
-        <p className={`rounded-lg px-3 py-2 text-xs ${fetchResult.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+        <p className={`rounded-lg px-3 py-2 text-xs ${fetchResult.startsWith('Error') ? 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400' : 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400'}`}>
           {fetchResult}
         </p>
       )}
       {testResult && (
-        <p className={`rounded-lg px-3 py-2 text-xs ${testResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+        <p className={`rounded-lg px-3 py-2 text-xs ${testResult.ok ? 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400' : 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400'}`}>
           {testResult.ok ? 'Connection successful' : `Connection failed: ${testResult.error}`}
         </p>
       )}
@@ -169,53 +169,53 @@ function WebhookSection() {
   if (status === 'not-configured') {
     return (
       <div className="space-y-3">
-        <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800">
+        <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300">
           <p className="font-semibold mb-1">Setup required</p>
           <p>
-            Add <code className="rounded bg-amber-100 px-1 font-mono">NEWSLETTER_INGEST_SECRET=your-secret</code> to
-            your <code className="rounded bg-amber-100 px-1 font-mono">docker-compose.yml</code> and restart the container.
+            Add <code className="rounded bg-amber-100 px-1 font-mono dark:bg-amber-900/40">NEWSLETTER_INGEST_SECRET=your-secret</code> to
+            your <code className="rounded bg-amber-100 px-1 font-mono dark:bg-amber-900/40">docker-compose.yml</code> and restart the container.
             Then use any of the integrations below to forward newsletters.
           </p>
         </div>
 
         {/* n8n */}
-        <div className="rounded-lg border border-gray-100 p-3 text-xs">
-          <p className="font-semibold text-gray-800 mb-1">n8n</p>
-          <ol className="list-decimal list-inside space-y-1 text-gray-600">
+        <div className="rounded-lg border border-gray-100 p-3 text-xs dark:border-gray-800">
+          <p className="font-semibold text-gray-800 mb-1 dark:text-gray-200">n8n</p>
+          <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
             <li>Add an <strong>Email Trigger</strong> (or Gmail/IMAP node)</li>
             <li>Connect an <strong>HTTP Request</strong> node:
               <ul className="ml-4 mt-0.5 space-y-0.5 list-disc list-inside">
                 <li>Method: POST</li>
-                <li>URL: <code className="rounded bg-gray-100 px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
-                <li>Header: <code className="rounded bg-gray-100 px-1 font-mono">x-ingest-secret: your-secret</code></li>
-                <li>Body: <code className="rounded bg-gray-100 px-1 font-mono">{'{"subject":"{{$json.subject}}","from":"{{$json.from}}","html":"{{$json.html}}"}'}</code></li>
+                <li>URL: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">https://your-domain/api/ingest/newsletter</code></li>
+                <li>Header: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">x-ingest-secret: your-secret</code></li>
+                <li>Body: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">{'{"subject":"{{$json.subject}}","from":"{{$json.from}}","html":"{{$json.html}}"}'}</code></li>
               </ul>
             </li>
           </ol>
         </div>
 
         {/* Zapier */}
-        <div className="rounded-lg border border-gray-100 p-3 text-xs">
-          <p className="font-semibold text-gray-800 mb-1">Zapier</p>
-          <ol className="list-decimal list-inside space-y-1 text-gray-600">
+        <div className="rounded-lg border border-gray-100 p-3 text-xs dark:border-gray-800">
+          <p className="font-semibold text-gray-800 mb-1 dark:text-gray-200">Zapier</p>
+          <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
             <li>Trigger: <strong>Email by Zapier</strong> (or Gmail: New Email)</li>
             <li>Action: <strong>Webhooks by Zapier → POST</strong></li>
-            <li>URL: <code className="rounded bg-gray-100 px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
+            <li>URL: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">https://your-domain/api/ingest/newsletter</code></li>
             <li>Payload type: <strong>JSON</strong> — map <code className="font-mono">subject</code>, <code className="font-mono">from</code>, <code className="font-mono">html</code></li>
-            <li>Header: <code className="rounded bg-gray-100 px-1 font-mono">x-ingest-secret: your-secret</code></li>
+            <li>Header: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">x-ingest-secret: your-secret</code></li>
           </ol>
         </div>
 
         {/* Make (Integromat) */}
-        <div className="rounded-lg border border-gray-100 p-3 text-xs">
-          <p className="font-semibold text-gray-800 mb-1">Make (Integromat)</p>
-          <ol className="list-decimal list-inside space-y-1 text-gray-600">
+        <div className="rounded-lg border border-gray-100 p-3 text-xs dark:border-gray-800">
+          <p className="font-semibold text-gray-800 mb-1 dark:text-gray-200">Make (Integromat)</p>
+          <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
             <li>Add an <strong>Email → Watch Emails</strong> module</li>
             <li>Add an <strong>HTTP → Make a request</strong> module:
               <ul className="ml-4 mt-0.5 space-y-0.5 list-disc list-inside">
                 <li>Method: POST · Content-Type: application/json</li>
-                <li>URL: <code className="rounded bg-gray-100 px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
-                <li>Header: <code className="rounded bg-gray-100 px-1 font-mono">x-ingest-secret: your-secret</code></li>
+                <li>URL: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">https://your-domain/api/ingest/newsletter</code></li>
+                <li>Header: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">x-ingest-secret: your-secret</code></li>
                 <li>Body: map Subject, From address, HTML body</li>
               </ul>
             </li>
@@ -223,13 +223,13 @@ function WebhookSection() {
         </div>
 
         {/* Mailgun */}
-        <div className="rounded-lg border border-gray-100 p-3 text-xs">
-          <p className="font-semibold text-gray-800 mb-1">Mailgun inbound routing</p>
-          <ol className="list-decimal list-inside space-y-1 text-gray-600">
-            <li>In Mailgun → Receiving, create a Route with filter <code className="rounded bg-gray-100 px-1 font-mono">match_recipient(&quot;newsletters@your-mailgun-domain.com&quot;)</code></li>
-            <li>Action: <strong>forward</strong> to <code className="rounded bg-gray-100 px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
-            <li>Add custom header <code className="rounded bg-gray-100 px-1 font-mono">x-ingest-secret: your-secret</code> in the route</li>
-            <li>Forward newsletters to <code className="rounded bg-gray-100 px-1 font-mono">newsletters@your-mailgun-domain.com</code></li>
+        <div className="rounded-lg border border-gray-100 p-3 text-xs dark:border-gray-800">
+          <p className="font-semibold text-gray-800 mb-1 dark:text-gray-200">Mailgun inbound routing</p>
+          <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
+            <li>In Mailgun → Receiving, create a Route with filter <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">match_recipient(&quot;newsletters@your-mailgun-domain.com&quot;)</code></li>
+            <li>Action: <strong>forward</strong> to <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">https://your-domain/api/ingest/newsletter</code></li>
+            <li>Add custom header <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">x-ingest-secret: your-secret</code> in the route</li>
+            <li>Forward newsletters to <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">newsletters@your-mailgun-domain.com</code></li>
           </ol>
         </div>
       </div>
@@ -238,9 +238,9 @@ function WebhookSection() {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700">Webhook (n8n / Zapier / Mailgun)</p>
+      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Webhook (n8n / Zapier / Mailgun)</p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 truncate rounded-lg bg-gray-100 px-3 py-2 font-mono text-[11px] text-gray-700">
+        <code className="flex-1 truncate rounded-lg bg-gray-100 px-3 py-2 font-mono text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-300">
           {webhookUrl}
         </code>
         <button
@@ -304,7 +304,7 @@ function NewsletterSourcesSection() {
 
   if (sources.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-gray-200 p-3 text-center text-xs text-gray-400">
+      <div className="rounded-lg border border-dashed border-gray-200 p-3 text-center text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
         No newsletters ingested yet — configure IMAP or webhook above to get started.
       </div>
     )
@@ -312,16 +312,16 @@ function NewsletterSourcesSection() {
 
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold text-gray-600">Ingested newsletters</p>
+      <p className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">Ingested newsletters</p>
       <div className="space-y-0.5">
         {sources.map((s) => (
           <div
             key={s.name}
-            className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 ${!s.enabled ? 'opacity-50' : ''}`}
+            className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${!s.enabled ? 'opacity-50' : ''}`}
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-gray-800">✉️ {s.name}</p>
-              <p className="text-[10px] text-gray-400">{s.count} article{s.count === 1 ? '' : 's'} ingested</p>
+              <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">✉️ {s.name}</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">{s.count} article{s.count === 1 ? '' : 's'} ingested</p>
             </div>
             <button
               onClick={() => handleToggle(s.name, s.enabled)}
@@ -330,7 +330,7 @@ function NewsletterSourcesSection() {
               aria-label={`${s.enabled ? 'Hide' : 'Show'} ${s.name} in feed`}
               aria-pressed={s.enabled}
             >
-              <div className={`relative h-5 w-9 rounded-full transition-colors ${s.enabled ? 'bg-blue-600' : 'bg-gray-200'}`}>
+              <div className={`relative h-5 w-9 rounded-full transition-colors ${s.enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
                 <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${s.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
               </div>
             </button>
@@ -430,11 +430,11 @@ function LearnedPreferencesSection({
     (data.boostedTopics.length > 0 || data.suppressedTopics.length > 0 || data.suppressedSources.length > 0)
 
   return (
-    <section className="rounded-xl bg-white p-4 shadow-sm">
+    <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Feed Learning</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Feed Learning</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Adapts your feed based on what you read and skip
           </p>
         </div>
@@ -444,7 +444,7 @@ function LearnedPreferencesSection({
           aria-checked={learningEnabled}
           onClick={() => onToggleLearning(!learningEnabled)}
           className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
-            learningEnabled ? 'bg-blue-600' : 'bg-gray-300'
+            learningEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'
           }`}
         >
           <span
@@ -458,7 +458,7 @@ function LearnedPreferencesSection({
       {loading ? (
         <p className="text-xs text-gray-400">Loading…</p>
       ) : !hasAnyData ? (
-        <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-400">
+        <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-400 dark:bg-gray-800 dark:text-gray-500">
           {data?.signalCount === 0
             ? 'No signals yet — start reading to personalise your feed'
             : 'No strong preferences detected yet — keep reading'}
@@ -468,18 +468,18 @@ function LearnedPreferencesSection({
           {/* Boosted topics */}
           {data.boostedTopics.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Boosted topics</p>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Boosted topics</p>
               <div className="space-y-1">
                 {data.boostedTopics.map((t) => (
                   <div key={t.topic} className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-sm text-gray-700">
+                    <span className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                       <span className="text-green-500">↑</span>
                       {CATEGORY_DISPLAY[t.topic] ?? t.topic}
                     </span>
                     <button
                       onClick={() => resetTopic(t.topic)}
                       disabled={resetting === t.topic}
-                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40"
+                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40 dark:text-gray-500 dark:hover:text-gray-300"
                     >
                       Reset
                     </button>
@@ -492,18 +492,18 @@ function LearnedPreferencesSection({
           {/* Suppressed topics */}
           {data.suppressedTopics.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Suppressed topics</p>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Suppressed topics</p>
               <div className="space-y-1">
                 {data.suppressedTopics.map((t) => (
                   <div key={t.topic} className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-sm text-gray-700">
+                    <span className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                       <span className="text-orange-400">↓</span>
                       {CATEGORY_DISPLAY[t.topic] ?? t.topic}
                     </span>
                     <button
                       onClick={() => resetTopic(t.topic)}
                       disabled={resetting === t.topic}
-                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40"
+                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40 dark:text-gray-500 dark:hover:text-gray-300"
                     >
                       Reset
                     </button>
@@ -516,15 +516,15 @@ function LearnedPreferencesSection({
           {/* Hidden sources */}
           {data.suppressedSources.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">Hidden sources</p>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Hidden sources</p>
               <div className="space-y-1">
                 {data.suppressedSources.map((s) => (
                   <div key={s} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{s}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{s}</span>
                     <button
                       onClick={() => resetSource(s)}
                       disabled={resetting === s}
-                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40"
+                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40 dark:text-gray-500 dark:hover:text-gray-300"
                     >
                       Unhide
                     </button>
@@ -538,7 +538,7 @@ function LearnedPreferencesSection({
 
       {/* Signal count */}
       {data && data.signalCount > 0 && (
-        <p className="mt-3 text-[10px] text-gray-300">
+        <p className="mt-3 text-[10px] text-gray-300 dark:text-gray-600">
           {data.signalCount} signal{data.signalCount === 1 ? '' : 's'} recorded
         </p>
       )}
@@ -546,7 +546,7 @@ function LearnedPreferencesSection({
       {/* Advanced */}
       <button
         onClick={() => setShowAdvanced((v) => !v)}
-        className="mt-3 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
+        className="mt-3 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
       >
         <span>{showAdvanced ? '▾' : '▸'}</span>
         <span>Advanced</span>
@@ -555,8 +555,8 @@ function LearnedPreferencesSection({
         <div className="mt-2 space-y-2">
           <div>
             <div className="mb-1 flex items-center justify-between">
-              <label className="text-xs text-gray-500">Learning influence</label>
-              <span className="text-xs font-medium text-gray-700">{Math.round(preferenceWeight * 100)}%</span>
+              <label className="text-xs text-gray-500 dark:text-gray-400">Learning influence</label>
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{Math.round(preferenceWeight * 100)}%</span>
             </div>
             <input
               type="range"
@@ -567,7 +567,7 @@ function LearnedPreferencesSection({
               onChange={(e) => onPreferenceWeightChange(parseFloat(e.target.value))}
               className="w-full accent-blue-600"
             />
-            <p className="mt-0.5 text-[10px] text-gray-400">
+            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">
               0% = signals recorded but feed unaffected · 100% = full weight influence
             </p>
           </div>
@@ -578,14 +578,14 @@ function LearnedPreferencesSection({
       {hasAnyData && !showConfirmAll && (
         <button
           onClick={() => setShowConfirmAll(true)}
-          className="mt-3 text-xs text-gray-400 underline-offset-2 hover:text-red-500 hover:underline"
+          className="mt-3 text-xs text-gray-400 underline-offset-2 hover:text-red-500 hover:underline dark:text-gray-500"
         >
           Reset all learned preferences
         </button>
       )}
       {showConfirmAll && (
-        <div className="mt-3 rounded-lg bg-red-50 p-3">
-          <p className="mb-2 text-xs text-red-700">
+        <div className="mt-3 rounded-lg bg-red-50 p-3 dark:bg-red-950/50">
+          <p className="mb-2 text-xs text-red-700 dark:text-red-400">
             This clears all topic weights, source weights, and signal history. Your feed will revert to recency + sentiment balance.
           </p>
           <div className="flex gap-2">
@@ -598,7 +598,7 @@ function LearnedPreferencesSection({
             </button>
             <button
               onClick={() => setShowConfirmAll(false)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
             >
               Cancel
             </button>
@@ -1063,17 +1063,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <div>
-      <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm">
-        <h1 className="text-xl font-bold text-slate-900">Settings</h1>
-        <p className="text-xs text-gray-400">Customize your news experience</p>
+    <div className="min-h-screen dark:bg-gray-950">
+      <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
+        <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">Settings</h1>
+        <p className="text-xs text-gray-400 dark:text-gray-500">Customize your news experience</p>
       </header>
 
       <div className="space-y-4 px-4 py-4">
         {/* Mood Preset */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Mood Preset</h2>
-          <p className="mb-3 text-xs text-gray-500">
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Mood Preset</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
             Quick settings to match your current needs
           </p>
           <div className="space-y-2">
@@ -1083,14 +1083,14 @@ export default function SettingsPage() {
                 onClick={() => applyMoodPreset(preset.value)}
                 className={`flex w-full items-start gap-3 rounded-xl border-2 p-3 text-left transition-all ${
                   moodPreset === preset.value
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-transparent bg-gray-50 hover:border-gray-200'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50'
+                    : 'border-transparent bg-gray-50 hover:border-gray-200 dark:bg-gray-800 dark:hover:border-gray-700'
                 }`}
               >
                 <span className="mt-0.5 text-xl">{preset.emoji}</span>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{preset.label}</p>
-                  <p className="text-xs text-gray-500">{preset.desc}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preset.label}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{preset.desc}</p>
                 </div>
               </button>
             ))}
@@ -1098,9 +1098,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Balance Sliders */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Fine-tune Balance</h2>
-          <p className="mb-4 text-xs text-gray-500">
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Fine-tune Balance</h2>
+          <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
             Manually adjust your feed mix
           </p>
           <div className="space-y-4">
@@ -1111,8 +1111,8 @@ export default function SettingsPage() {
             ].map(({ key, label, value, accent, max }) => (
               <div key={key}>
                 <div className="mb-1 flex justify-between text-sm">
-                  <span className="font-medium text-gray-700">{label}</span>
-                  <span className="font-semibold text-gray-600">{value}%</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">{label}</span>
+                  <span className="font-semibold text-gray-600 dark:text-gray-400">{value}%</span>
                 </div>
                 <input
                   type="range"
@@ -1120,7 +1120,7 @@ export default function SettingsPage() {
                   max={max}
                   value={value}
                   onChange={(e) => adjustRatios(key, parseInt(e.target.value))}
-                  className={`h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 ${accent}`}
+                  className={`h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 dark:bg-gray-700 ${accent}`}
                 />
               </div>
             ))}
@@ -1133,9 +1133,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Topics */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">News Topics</h2>
-          <p className="mb-3 text-xs text-gray-500">Choose which categories to follow</p>
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">News Topics</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">Choose which categories to follow</p>
           <div className="space-y-1">
             {CATEGORY_OPTIONS.map((cat) => {
               const isEnabled = enabledCategories.includes(cat.id)
@@ -1143,13 +1143,13 @@ export default function SettingsPage() {
                 <button
                   key={cat.id}
                   onClick={() => toggleCategory(cat.id)}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-gray-50"
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <span className="flex items-center gap-2.5 text-sm font-medium text-gray-700">
+                  <span className="flex items-center gap-2.5 text-sm font-medium text-gray-700 dark:text-gray-300">
                     <span>{cat.emoji}</span>
                     {cat.label}
                   </span>
-                  <div className={`relative h-5 w-9 rounded-full transition-colors ${isEnabled ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                  <div className={`relative h-5 w-9 rounded-full transition-colors ${isEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
                     <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                   </div>
                 </button>
@@ -1159,18 +1159,18 @@ export default function SettingsPage() {
         </section>
 
         {/* News Sources */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">News Sources</h2>
-          <p className="mb-3 text-xs text-gray-500">Toggle individual sources on or off. Tap a source name for details.</p>
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">News Sources</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">Toggle individual sources on or off. Tap a source name for details.</p>
 
           {Object.entries(sourcesByLanguage).map(([lang, categoryMap]) => (
             <div key={lang} className="mb-5 last:mb-0">
               {/* Language header */}
-              <div className="mb-2 flex items-center gap-2 border-b border-gray-100 pb-1.5">
-                <span className="text-sm font-bold text-gray-700">
+              <div className="mb-2 flex items-center gap-2 border-b border-gray-100 pb-1.5 dark:border-gray-800">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
                   {lang === 'de' ? '🇩🇪 German Sources' : '🇬🇧 English Sources'}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 dark:text-gray-500">
                   ({Object.values(categoryMap).flat().length} sources)
                 </span>
               </div>
@@ -1186,7 +1186,7 @@ export default function SettingsPage() {
                   return (
                     <div key={categoryId}>
                       {/* Category header row */}
-                      <div className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50">
+                      <div className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800">
                         <button
                           onClick={() => toggleGroupCollapsed(groupKey)}
                           className="flex flex-1 items-center gap-2 text-left"
@@ -1198,14 +1198,14 @@ export default function SettingsPage() {
                             fill="none"
                             stroke="currentColor"
                             strokeWidth={2}
-                            className={`h-3 w-3 flex-shrink-0 text-gray-400 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
+                            className={`h-3 w-3 flex-shrink-0 text-gray-400 transition-transform dark:text-gray-500 ${isCollapsed ? '-rotate-90' : ''}`}
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" d="m19 9-7 7-7-7" />
                           </svg>
-                          <span className="text-xs font-semibold text-gray-600">
+                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                             {SOURCE_CATEGORY_LABELS[categoryId] ?? categoryId}
                           </span>
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
                             {enabledCount === total ? `${total} enabled` : `${enabledCount}/${total} enabled`}
                           </span>
                         </button>
@@ -1216,10 +1216,10 @@ export default function SettingsPage() {
                           >
                             All
                           </button>
-                          <span className="text-[11px] text-gray-300">·</span>
+                          <span className="text-[11px] text-gray-300 dark:text-gray-600">·</span>
                           <button
                             onClick={() => deselectAllInCategory(categoryId)}
-                            className="text-[11px] text-gray-400 hover:underline"
+                            className="text-[11px] text-gray-400 hover:underline dark:text-gray-500"
                           >
                             None
                           </button>
@@ -1234,22 +1234,22 @@ export default function SettingsPage() {
                             return (
                               <div
                                 key={source.id}
-                                className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 ${!enabled ? 'opacity-50' : ''}`}
+                                className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${!enabled ? 'opacity-50' : ''}`}
                               >
                                 {/* Left: emoji + name (tappable for detail) + language badge + bias badge */}
                                 <div className="flex min-w-0 flex-1 items-center gap-2">
                                   <span className="text-base leading-none">{source.logoEmoji}</span>
                                   <button
                                     onClick={() => setDetailSource(source)}
-                                    className="truncate text-sm font-medium text-gray-800 hover:underline focus:outline-none"
+                                    className="truncate text-sm font-medium text-gray-800 hover:underline focus:outline-none dark:text-gray-200"
                                     aria-label={`${source.name} — tap for details`}
                                   >
                                     {source.name}
                                   </button>
-                                  <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${source.language === 'de' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                                  <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${source.language === 'de' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
                                     {source.language.toUpperCase()}
                                   </span>
-                                  <span className="flex-shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
+                                  <span className="flex-shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                                     {BIAS_LABELS[source.bias] ?? source.bias}
                                   </span>
                                 </div>
@@ -1260,7 +1260,7 @@ export default function SettingsPage() {
                                   aria-label={`${enabled ? 'Disable' : 'Enable'} ${source.name}`}
                                   aria-pressed={enabled}
                                 >
-                                  <div className={`relative h-5 w-9 rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                                  <div className={`relative h-5 w-9 rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
                                     <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                                   </div>
                                 </button>
@@ -1284,25 +1284,25 @@ export default function SettingsPage() {
             onClick={() => setDetailSource(null)}
           >
             <div
-              className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+              className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-3 flex items-center gap-3">
                 <span className="text-3xl">{detailSource.logoEmoji}</span>
                 <div>
-                  <h3 className="text-base font-bold text-gray-900">{detailSource.name}</h3>
-                  <p className="text-xs text-gray-500">{BIAS_LABELS[detailSource.bias] ?? detailSource.bias} · {detailSource.language.toUpperCase()} · {SOURCE_CATEGORY_LABELS[detailSource.category] ?? detailSource.category}</p>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{detailSource.name}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{BIAS_LABELS[detailSource.bias] ?? detailSource.bias} · {detailSource.language.toUpperCase()} · {SOURCE_CATEGORY_LABELS[detailSource.category] ?? detailSource.category}</p>
                 </div>
               </div>
               <div className="space-y-2">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">RSS Feed</p>
-                  <p className="mt-0.5 break-all text-xs text-gray-600 font-mono">{detailSource.url}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">RSS Feed</p>
+                  <p className="mt-0.5 break-all text-xs text-gray-600 font-mono dark:text-gray-400">{detailSource.url}</p>
                 </div>
               </div>
               <button
                 onClick={() => setDetailSource(null)}
-                className="mt-4 w-full rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-700"
+                className="mt-4 w-full rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300"
               >
                 Close
               </button>
@@ -1311,9 +1311,9 @@ export default function SettingsPage() {
         )}
 
         {/* Avoid Topics */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Avoid Topics</h2>
-          <p className="mb-3 text-xs text-gray-500">
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Avoid Topics</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
             Comma-separated keywords to filter out (e.g. war, celebrity, crypto)
           </p>
           <input
@@ -1321,24 +1321,24 @@ export default function SettingsPage() {
             value={avoidInput}
             onChange={(e) => setAvoidInput(e.target.value)}
             placeholder="war, celebrity gossip, crypto..."
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-600"
           />
         </section>
 
         {/* Hidden Sources */}
         {hiddenSources.length > 0 && (
-          <section className="rounded-xl bg-white p-4 shadow-sm">
-            <h2 className="mb-1 text-base font-semibold text-gray-900">Hidden Sources</h2>
-            <p className="mb-3 text-xs text-gray-500">
+          <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+            <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Hidden Sources</h2>
+            <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
               Sources you&apos;ve hidden via article feedback
             </p>
             <div className="flex flex-wrap gap-2">
               {hiddenSources.map((source) => (
-                <span key={source} className="flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+                <span key={source} className="flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
                   {source}
                   <button
                     onClick={() => removeHiddenSource(source)}
-                    className="ml-0.5 text-gray-400 hover:text-gray-600"
+                    className="ml-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                     aria-label={`Unhide ${source}`}
                   >
                     ✕
@@ -1350,12 +1350,12 @@ export default function SettingsPage() {
         )}
 
         {/* Personalisation */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Personalisation</h2>
-          <p className="mb-3 text-xs text-gray-500">
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Personalisation</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
             SmartBrief learns from your feedback to surface sources you prefer
           </p>
-          <p className="mb-4 text-sm text-gray-600">
+          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
             {activeWeights === null
               ? 'Loading…'
               : activeWeights === 0
@@ -1363,7 +1363,7 @@ export default function SettingsPage() {
               : `Personalisation active — tracking ${activeWeights} source ${activeWeights === 1 ? 'preference' : 'preferences'}.`}
           </p>
           {resetDone && (
-            <p className="mb-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
+            <p className="mb-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700 dark:bg-green-950/50 dark:text-green-400">
               Personalisation reset. Your next briefing starts fresh.
             </p>
           )}
@@ -1371,13 +1371,13 @@ export default function SettingsPage() {
             <button
               onClick={() => setShowResetConfirm(true)}
               disabled={activeWeights === 0}
-              className="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/50"
             >
               Reset personalisation
             </button>
           ) : (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-              <p className="mb-3 text-xs text-red-700">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/50">
+              <p className="mb-3 text-xs text-red-700 dark:text-red-400">
                 This will delete all learned source preferences. Your feedback history is kept but won&apos;t be re-applied.
               </p>
               <div className="flex gap-2">
@@ -1390,7 +1390,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   onClick={() => setShowResetConfirm(false)}
-                  className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                  className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
@@ -1400,31 +1400,31 @@ export default function SettingsPage() {
         </section>
 
         {/* Newsletter Ingestion */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Newsletter Ingestion</h2>
-          <p className="mb-3 text-xs text-gray-500">
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Newsletter Ingestion</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
             Forward newsletters to SmartBrief via a webhook. Set{' '}
-            <code className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-700">NEWSLETTER_INGEST_SECRET</code>{' '}
+            <code className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-300">NEWSLETTER_INGEST_SECRET</code>{' '}
             in your environment to enable this.
           </p>
           <NewsletterIngestSection />
         </section>
 
         {/* Session & Reading */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Reading Session</h2>
-          <p className="mb-3 text-xs text-gray-500">
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Reading Session</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
             Control how many stories appear in each briefing session
           </p>
           <div className="mb-4">
-            <p className="mb-2 text-xs font-medium text-gray-600">Stories per session</p>
+            <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">Stories per session</p>
             <div className="flex gap-2">
               {SESSION_OPTIONS.map((n) => (
                 <button
                   key={n}
                   onClick={() => setSessionSize(n)}
                   className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                    sessionSize === n ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    sessionSize === n ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
                   }`}
                 >
                   {n}
@@ -1433,14 +1433,14 @@ export default function SettingsPage() {
             </div>
           </div>
           <div>
-            <p className="mb-2 text-xs font-medium text-gray-600">Default reading depth</p>
+            <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">Default reading depth</p>
             <div className="flex gap-2">
               {(['skim', 'deep'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setDepthMode(mode)}
                   className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                    depthMode === mode ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    depthMode === mode ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
                   }`}
                 >
                   {mode === 'skim' ? '⚡ Skim' : '📖 Deep dive'}
@@ -1451,13 +1451,13 @@ export default function SettingsPage() {
         </section>
 
         {/* Push Notifications */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Push Notifications</h2>
-          <p className="mb-3 text-xs text-gray-500">
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Push Notifications</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
             Get alerted for critical breaking news only — verified across 3+ sources. Fires rarely by design.
           </p>
           {pushPermission === 'unsupported' ? (
-            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
               Push notifications are not supported in this browser. Install SmartBrief to your home screen on iOS 16.4+ or use a modern desktop browser.
             </p>
           ) : (
@@ -1465,7 +1465,7 @@ export default function SettingsPage() {
               {/* Master toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-800">Enable push notifications</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Enable push notifications</p>
                   {pushPermission === 'denied' && (
                     <p className="text-xs text-red-500 mt-0.5">
                       Permission denied — re-enable in browser settings.
@@ -1476,7 +1476,7 @@ export default function SettingsPage() {
                   onClick={() => handlePushToggle(!pushEnabled)}
                   disabled={pushRegistering || pushPermission === 'denied'}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-                    pushEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                    pushEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
                   }`}
                   role="switch"
                   aria-checked={pushEnabled}
@@ -1499,7 +1499,7 @@ export default function SettingsPage() {
                   <button
                     onClick={handlePushTest}
                     disabled={pushTesting}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
                   >
                     {pushTesting ? 'Sending…' : 'Send test notification'}
                   </button>
@@ -1513,13 +1513,13 @@ export default function SettingsPage() {
 
               {/* Notification history — last 20 sent, always visible when push is supported */}
               {notifHistory.length > 0 && (
-                <div className="rounded-lg bg-gray-50 p-3">
-                  <p className="mb-2 text-xs font-medium text-gray-600">Recent alerts</p>
+                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
+                  <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">Recent alerts</p>
                   <div className="space-y-2">
                     {notifHistory.slice(0, 5).map((n) => (
-                      <div key={n.id} className="text-[11px] text-gray-500">
-                        <p className="font-medium text-gray-700 leading-snug">{n.body}</p>
-                        <p className="text-gray-400">
+                      <div key={n.id} className="text-[11px] text-gray-500 dark:text-gray-400">
+                        <p className="font-medium text-gray-700 leading-snug dark:text-gray-300">{n.body}</p>
+                        <p className="text-gray-400 dark:text-gray-500">
                           {new Date(n.sentAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -1530,13 +1530,13 @@ export default function SettingsPage() {
 
               {/* Quiet hours — only shown when push is enabled */}
               {pushEnabled && (
-                <div className="rounded-lg bg-gray-50 p-3 space-y-2.5">
+                <div className="rounded-lg bg-gray-50 p-3 space-y-2.5 dark:bg-gray-800">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-700">Quiet hours</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Quiet hours</p>
                     <button
                       onClick={() => setQuietHoursEnabled((v) => !v)}
                       className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                        quietHoursEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                        quietHoursEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
                       }`}
                       role="switch"
                       aria-checked={quietHoursEnabled}
@@ -1549,20 +1549,20 @@ export default function SettingsPage() {
                     </button>
                   </div>
                   {quietHoursEnabled && (
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <label className="text-xs text-gray-500 w-10">From</label>
+                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                      <label className="text-xs text-gray-500 w-10 dark:text-gray-400">From</label>
                       <input
                         type="time"
                         value={quietHoursStart}
                         onChange={(e) => setQuietHoursStart(e.target.value)}
-                        className="rounded border border-gray-200 px-2 py-1 text-xs"
+                        className="rounded border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                       />
-                      <label className="text-xs text-gray-500 w-6">to</label>
+                      <label className="text-xs text-gray-500 w-6 dark:text-gray-400">to</label>
                       <input
                         type="time"
                         value={quietHoursEnd}
                         onChange={(e) => setQuietHoursEnd(e.target.value)}
-                        className="rounded border border-gray-200 px-2 py-1 text-xs"
+                        className="rounded border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                       />
                     </div>
                   )}
@@ -1581,9 +1581,9 @@ export default function SettingsPage() {
         />
 
         {/* Auto-Refresh */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Auto-Refresh</h2>
-          <p className="mb-3 text-xs text-gray-500">How often to fetch fresh articles</p>
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Auto-Refresh</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">How often to fetch fresh articles</p>
           <div className="grid grid-cols-2 gap-2">
             {REFRESH_OPTIONS.map((opt) => (
               <button
@@ -1592,7 +1592,7 @@ export default function SettingsPage() {
                 className={`rounded-lg py-2.5 text-sm font-medium transition-colors ${
                   refreshInterval === opt.value
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
                 }`}
               >
                 {opt.label}
@@ -1602,27 +1602,27 @@ export default function SettingsPage() {
         </section>
 
         {/* About */}
-        <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h2 className="mb-2 text-base font-semibold text-gray-900">About SmartBrief</h2>
-          <div className="space-y-2 text-xs leading-relaxed text-gray-500">
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">About SmartBrief</h2>
+          <div className="space-y-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
             <p>
-              <strong className="text-gray-700">Sentiment Analysis</strong> — Claude Haiku reads each article to determine its emotional tone. Positive articles are discoveries, achievements, and solutions. Neutral is factual reporting. &ldquo;In Focus&rdquo; are challenging or concerning topics.
+              <strong className="text-gray-700 dark:text-gray-300">Sentiment Analysis</strong> — Claude Haiku reads each article to determine its emotional tone. Positive articles are discoveries, achievements, and solutions. Neutral is factual reporting. &ldquo;In Focus&rdquo; are challenging or concerning topics.
             </p>
             <p>
-              <strong className="text-gray-700">Multi-source Briefs</strong> — Claude Sonnet clusters related articles from different outlets and writes balanced summaries, like Perplexity — but always with a constructive framing.
+              <strong className="text-gray-700 dark:text-gray-300">Multi-source Briefs</strong> — Claude Sonnet clusters related articles from different outlets and writes balanced summaries, like Perplexity — but always with a constructive framing.
             </p>
             <p>
-              <strong className="text-gray-700">Session Mode</strong> — Your feed is a finite briefing, not an infinite scroll. When you&apos;ve read your session, you&apos;re done for now. This is intentional.
+              <strong className="text-gray-700 dark:text-gray-300">Session Mode</strong> — Your feed is a finite briefing, not an infinite scroll. When you&apos;ve read your session, you&apos;re done for now. This is intentional.
             </p>
             <p>
-              <strong className="text-gray-700">Privacy</strong> — All data stays local on your device (SQLite). No tracking, no ads, no engagement optimization. Your mental health is the metric.
+              <strong className="text-gray-700 dark:text-gray-300">Privacy</strong> — All data stays local on your device (SQLite). No tracking, no ads, no engagement optimization. Your mental health is the metric.
             </p>
-            <p className="text-gray-400">SmartBrief v0.1.0 · Powered by Anthropic Claude</p>
+            <p className="text-gray-400 dark:text-gray-500">SmartBrief v0.1.0 · Powered by Anthropic Claude</p>
           </div>
         </section>
 
         {error && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
+          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/50 dark:text-red-400">{error}</div>
         )}
 
         <button
@@ -1641,10 +1641,10 @@ export default function SettingsPage() {
 
         {/* Sign out */}
         <div className="pt-2">
-          <div className="mb-4 border-t border-gray-100" />
+          <div className="mb-4 border-t border-gray-100 dark:border-gray-800" />
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center justify-center rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+            className="flex w-full items-center justify-center rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
           >
             Sign out
           </button>

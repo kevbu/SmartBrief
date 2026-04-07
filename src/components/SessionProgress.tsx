@@ -13,12 +13,12 @@ export default function SessionProgress({ current, total, onLoadMore, isCatchUp 
 
   if (isComplete) {
     return (
-      <div className="mx-4 mb-4 rounded-2xl bg-emerald-50 p-5 text-center">
+      <div className="mx-4 mb-4 rounded-2xl bg-emerald-50 p-5 text-center dark:bg-emerald-950/50">
         <div className="mb-2 text-3xl">🌟</div>
         <h3 className="mb-1 text-base font-bold text-emerald-800">
           {isCatchUp ? "You're caught up!" : 'Briefing complete!'}
         </h3>
-        <p className="mb-3 text-xs text-emerald-600">
+        <p className="mb-3 text-xs text-emerald-600 dark:text-emerald-400">
           {isCatchUp
             ? "You\u2019ve read your catch-up brief. You\u2019re all caught up."
             : "You\u2019ve read your daily brief. Great job staying informed without overdoing it."}
@@ -38,11 +38,11 @@ export default function SessionProgress({ current, total, onLoadMore, isCatchUp 
 
   return (
     <div className="mx-4 mb-3">
-      <div className="mb-1.5 flex items-center justify-between text-xs text-gray-500">
+      <div className="mb-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
         <span className="font-medium">{sessionLabel}</span>
         <span>{current} of {total} stories</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+      <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
         <div
           className="h-full rounded-full bg-blue-500 transition-all duration-500"
           style={{ width: `${percent}%` }}

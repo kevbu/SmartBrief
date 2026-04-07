@@ -34,18 +34,18 @@ export default function Header({
   onMoodChange,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
       <div className="flex items-center justify-between px-4 py-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">SmartBrief</h1>
-          <p className="text-xs text-gray-400">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">SmartBrief</h1>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
             {isRefreshing ? 'Refreshing...' : formatLastRefreshed(lastRefreshed)}
           </p>
         </div>
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 disabled:opacity-50"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
           aria-label="Refresh news"
         >
           {isRefreshing ? (

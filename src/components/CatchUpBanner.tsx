@@ -10,13 +10,13 @@ export default function CatchUpBanner({ gapDays, onDismiss }: CatchUpBannerProps
     gapDays === 1 ? 'the last day' : `the last ${gapDays} days`
 
   return (
-    <div className="mx-4 mb-3 flex items-center justify-between rounded-xl bg-blue-50 px-4 py-3">
-      <p className="text-xs text-blue-700">
+    <div className="mx-4 mb-3 flex items-center justify-between rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/50">
+      <p className="text-xs text-blue-700 dark:text-blue-300">
         Catching up from {label} — top stories ranked by importance.
       </p>
       <button
         onClick={onDismiss}
-        className="ml-3 shrink-0 text-xs font-semibold text-blue-600 hover:text-blue-800"
+        className="ml-3 shrink-0 text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
       >
         Today&apos;s briefing →
       </button>

@@ -123,7 +123,7 @@ export default function ArticleCard({
   if (collapsed) {
     return (
       <article
-        className="mx-4 mb-1 flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm opacity-50 transition-all active:scale-[0.99]"
+        className="mx-4 mb-1 flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm opacity-50 transition-all active:scale-[0.99] dark:bg-gray-900"
         onClick={handleClick}
         aria-label="Off-topic story — tap to expand"
       >
@@ -149,7 +149,7 @@ export default function ArticleCard({
     <article
       ref={cardRef}
       className={clsx(
-        'mx-4 mb-3 cursor-pointer rounded-xl bg-white p-4 shadow-sm transition-all active:scale-[0.99]',
+        'mx-4 mb-3 cursor-pointer rounded-xl bg-white p-4 shadow-sm transition-all active:scale-[0.99] dark:bg-gray-900',
         isRead && 'opacity-60'
       )}
       onClick={handleClick}
@@ -157,11 +157,11 @@ export default function ArticleCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {/* Source row */}
-          <div className="mb-1.5 flex items-center gap-1.5 text-xs text-gray-400">
+          <div className="mb-1.5 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
             <span>{article.url.startsWith('newsletter://') ? '✉️' : getEmojiForSource(article.source)}</span>
-            <span className="font-medium text-gray-500">{article.source}</span>
+            <span className="font-medium text-gray-500 dark:text-gray-400">{article.source}</span>
             {article.url.startsWith('newsletter://') && (
-              <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-500">
+              <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-500 dark:bg-indigo-900/40 dark:text-indigo-400">
                 newsletter
               </span>
             )}
@@ -171,20 +171,20 @@ export default function ArticleCard({
           </div>
 
           {/* Title */}
-          <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
+          <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-snug text-gray-900 dark:text-gray-100">
             {article.title}
           </h3>
 
           {/* Description / AI Summary */}
           {displayText && (
-            <p className={clsx('text-xs leading-relaxed text-gray-500', textClamp)}>
+            <p className={clsx('text-xs leading-relaxed text-gray-500 dark:text-gray-400', textClamp)}>
               {displayText}
             </p>
           )}
 
           {/* Deep mode: "Why am I seeing this?" */}
           {depthMode === 'deep' ? (
-            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-300">
+            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-300 dark:text-gray-600">
               <span>✦</span>
               <span>{article.reason ?? `From ${article.source} · ${article.category} · ${article.sentiment} tone`}</span>
             </p>
@@ -207,7 +207,7 @@ export default function ArticleCard({
                   'flex h-11 w-11 items-center justify-center rounded-full transition-colors',
                   isSaved
                     ? 'text-blue-600'
-                    : 'text-gray-300 hover:text-gray-400'
+                    : 'text-gray-300 hover:text-gray-400 dark:text-gray-600 dark:hover:text-gray-500'
                 )}
                 aria-label={isSaved ? 'Remove bookmark' : 'Bookmark article'}
               >
