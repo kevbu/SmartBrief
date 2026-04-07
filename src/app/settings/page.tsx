@@ -554,21 +554,33 @@ function LearnedPreferencesSection({
       {showAdvanced ? (
         <div className="mt-2 space-y-2">
           <div>
-            <div className="mb-1 flex items-center justify-between">
-              <label className="text-xs text-gray-500 dark:text-gray-400">Learning influence</label>
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{Math.round(preferenceWeight * 100)}%</span>
+            <label className="mb-1.5 block text-xs text-gray-500 dark:text-gray-400">
+              Learning strength
+            </label>
+            <div className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-800">
+              {([
+                { label: 'Low',    value: 0.1 },
+                { label: 'Medium', value: 0.3 },
+                { label: 'High',   value: 0.6 },
+              ] as const).map((opt) => {
+                const isActive = Math.abs(preferenceWeight - opt.value) < 0.05
+                return (
+                  <button
+                    key={opt.label}
+                    onClick={() => onPreferenceWeightChange(opt.value)}
+                    className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-all ${
+                      isActive
+                        ? 'bg-white text-slate-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
             </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={preferenceWeight}
-              onChange={(e) => onPreferenceWeightChange(parseFloat(e.target.value))}
-              className="w-full accent-blue-600"
-            />
-            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">
-              0% = signals recorded but feed unaffected · 100% = full weight influence
+            <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
+              How much your feedback shapes future briefings.
             </p>
           </div>
         </div>

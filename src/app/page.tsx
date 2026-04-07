@@ -427,6 +427,11 @@ export default function HomePage() {
   const unifiedFeed = buildUnifiedFeed(displayedArticles, topStories)
   const firstArticleId = (unifiedFeed.find((i) => i.kind === 'article') as { kind: 'article'; article: Article } | undefined)?.article.id ?? null
 
+  // On Sunday (0) and Monday (1), promote the recap teaser above the article list
+  const todayDow = new Date().getDay()
+  const isWeekendReset = todayDow === 0 || todayDow === 1
+  const showRecapTeaser = !sessionExpanded && articles.length > sessionLimit && !!recapTeaser && recapTeaser.totalRead > 0
+
   return (
     <div>
       <Header
@@ -479,6 +484,28 @@ export default function HomePage() {
                 gapDays={catchUpGapDays}
                 onDismiss={handleDismissCatchUp}
               />
+            </div>
+          )}
+
+          {/* This Week recap teaser — promoted above article list on Sunday/Monday */}
+          {isWeekendReset && showRecapTeaser && (
+            <div className="px-4 pt-3">
+              <Link
+                href="/recap"
+                className="flex items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 transition-transform active:scale-[0.99] dark:bg-indigo-950/50"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">📊 This Week&apos;s Recap</p>
+                  <p className="mt-0.5 text-xs text-indigo-500 leading-snug dark:text-indigo-400">
+                    You read {recapTeaser!.totalRead} {recapTeaser!.totalRead === 1 ? 'story' : 'stories'} this week
+                    {recapTeaser!.topTopic ? ` — mostly ${TOPIC_LABELS[recapTeaser!.topTopic] ?? recapTeaser!.topTopic}` : ''}.
+                    See your full reading summary.
+                  </p>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="ml-3 h-5 w-5 flex-shrink-0 text-indigo-400 dark:text-indigo-500">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </Link>
             </div>
           )}
 
@@ -597,8 +624,8 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* This Week recap teaser — shown after briefing complete if read history exists */}
-              {!sessionExpanded && articles.length > sessionLimit && recapTeaser && recapTeaser.totalRead > 0 && (
+              {/* This Week recap teaser — shown after briefing complete (standard days only; Sun/Mon shows above article list) */}
+              {showRecapTeaser && !isWeekendReset && (
                 <Link
                   href="/recap"
                   className="mx-4 mb-4 flex items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 active:scale-98 transition-transform dark:bg-indigo-950/50"
