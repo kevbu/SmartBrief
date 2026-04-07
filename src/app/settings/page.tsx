@@ -254,11 +254,99 @@ function WebhookSection() {
   )
 }
 
+/** Lists newsletter senders that have been ingested, with enable/disable toggles. */
+function NewsletterSourcesSection() {
+  const [sources, setSources] = useState<Array<{ name: string; count: number; enabled: boolean }>>([])
+  const [loading, setLoading] = useState(true)
+  const [toggling, setToggling] = useState<string | null>(null)
+
+  function load() {
+    fetch('/api/ingest/newsletter/sources')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.sources) setSources(d.sources) })
+      .catch(() => null)
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function handleToggle(name: string, currentlyEnabled: boolean) {
+    setToggling(name)
+    try {
+      // Optimistic update
+      setSources((prev) =>
+        prev.map((s) => s.name === name ? { ...s, enabled: !currentlyEnabled } : s)
+      )
+
+      // Fetch current hiddenSources, then add or remove this source
+      const prefsRes = await fetch('/api/preferences')
+      if (!prefsRes.ok) throw new Error('Failed to fetch prefs')
+      const { preferences } = await prefsRes.json()
+      const current: string[] = preferences.hiddenSources ?? []
+
+      const updated = currentlyEnabled
+        ? [...current, name]                          // disable → add to hidden
+        : current.filter((s: string) => s !== name)  // enable → remove from hidden
+
+      await fetch('/api/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hiddenSources: updated }),
+      })
+    } catch {
+      load() // revert on error
+    } finally {
+      setToggling(null)
+    }
+  }
+
+  if (loading) return null
+
+  if (sources.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-gray-200 p-3 text-center text-xs text-gray-400">
+        No newsletters ingested yet — configure IMAP or webhook above to get started.
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold text-gray-600">Ingested newsletters</p>
+      <div className="space-y-0.5">
+        {sources.map((s) => (
+          <div
+            key={s.name}
+            className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 ${!s.enabled ? 'opacity-50' : ''}`}
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-gray-800">✉️ {s.name}</p>
+              <p className="text-[10px] text-gray-400">{s.count} article{s.count === 1 ? '' : 's'} ingested</p>
+            </div>
+            <button
+              onClick={() => handleToggle(s.name, s.enabled)}
+              disabled={toggling === s.name}
+              className="ml-3 flex-shrink-0 disabled:opacity-50"
+              aria-label={`${s.enabled ? 'Hide' : 'Show'} ${s.name} in feed`}
+              aria-pressed={s.enabled}
+            >
+              <div className={`relative h-5 w-9 rounded-full transition-colors ${s.enabled ? 'bg-blue-600' : 'bg-gray-200'}`}>
+                <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${s.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </div>
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function NewsletterIngestSection() {
   return (
     <div className="space-y-4">
       <ImapSection />
       <WebhookSection />
+      <NewsletterSourcesSection />
     </div>
   )
 }
