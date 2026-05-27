@@ -126,13 +126,14 @@ export async function generateTopStories(
     )
     .join('\n')
 
-  const prompt = `Based on these recent news articles, identify up to 20 top story clusters where multiple sources are covering similar topics. For each cluster, write a Perplexity-style aggregated summary.
+  const prompt = `Based on these recent news articles, identify up to 20 top story clusters where multiple sources are covering similar topics. For each cluster, write a brief summary and 2-5 bullet points.
 
 Return ONLY a JSON array with this format (no other text):
 [
   {
     "title": "Brief headline for the cluster (max 10 words)",
-    "summary": "3-4 sentence balanced summary citing sources. Format: 'Reporting from [Source1], [Source2], and [Source3] indicates that...'",
+    "summary": "2-3 sentence balanced summary citing sources. Format: 'Reporting from [Source1], [Source2], and [Source3] indicates that...'",
+    "bullets": ["Concrete fact from the cluster, max 15 words", "Another key development", "Third fact if relevant"],
     "category": "technology|science|business|world|positive",
     "articleIndices": [1, 3, 7],
     "sources": ["Source1", "Source2", "Source3"],
@@ -140,13 +141,15 @@ Return ONLY a JSON array with this format (no other text):
   }
 ]
 
+Each bullet must be a concrete, specific fact (not a vague summary). Max 5 bullets per cluster.
+
 Articles:
 ${articleList}`
 
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 6000,
       system:
         "You are a balanced news editor creating briefings. Synthesize news into clear, balanced summaries that inform without inducing anxiety. When reporting negative developments, include context, scale, and any positive aspects. Always end summaries constructively. Return only valid JSON.",
       messages: [{ role: 'user', content: prompt }],
@@ -164,6 +167,7 @@ ${articleList}`
     const parsed = JSON.parse(jsonMatch[0]) as Array<{
       title: string
       summary: string
+      bullets?: string[]
       category: string
       articleIndices: number[]
       sources: string[]
@@ -179,6 +183,8 @@ ${articleList}`
       return {
         title: item.title || 'Top Story',
         summary: item.summary || '',
+        bullets: (item.bullets ?? []).filter(Boolean).slice(0, 5),
+        clusterArticles: relatedArticles.map((a) => ({ title: a.title, source: a.source, url: a.url })),
         category: item.category || 'world',
         articleIds: relatedArticles.map((a) => a.id),
         sources: item.sources || relatedArticles.map((a) => a.source),

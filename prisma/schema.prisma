@@ -38,14 +38,16 @@ model Article {
 }
 
 model TopStory {
-  id         String   @id @default(cuid())
-  title      String
-  summary    String
-  category   String
-  articleIds String
-  sources    String
-  sentiment  String   @default("neutral")
-  createdAt  DateTime @default(now())
+  id              String   @id @default(cuid())
+  title           String
+  summary         String
+  category        String
+  articleIds      String
+  sources         String
+  sentiment       String   @default("neutral")
+  bullets         String?
+  clusterArticles String?
+  createdAt       DateTime @default(now())
 }
 
 model UserPreferences {

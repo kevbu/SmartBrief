@@ -694,11 +694,6 @@ export default function SettingsPage() {
   const [depthMode,   setDepthMode]   = useState<'skim' | 'deep'>('skim')
   const [hiddenSources, setHiddenSources] = useState<string[]>([])
   const [enabledSources, setEnabledSources] = useState<string[]>([])
-  const [activeWeights, setActiveWeights] = useState<number | null>(null)
-  const [showResetConfirm, setShowResetConfirm] = useState(false)
-  const [isResetting, setIsResetting] = useState(false)
-  const [resetDone, setResetDone] = useState(false)
-
   // Source list UI state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [detailSource, setDetailSource] = useState<(typeof NEWS_SOURCES)[0] | null>(null)
@@ -760,11 +755,6 @@ export default function SettingsPage() {
           setPushPermission(Notification.permission)
         } else {
           setPushPermission('unsupported')
-        }
-        const wRes = await fetch('/api/settings/personalisation')
-        if (wRes.ok) {
-          const wData = await wRes.json()
-          setActiveWeights(wData.activeWeights ?? 0)
         }
       } catch (err) {
         console.error(err)
@@ -907,23 +897,6 @@ export default function SettingsPage() {
 
       return next
     })
-  }
-
-  async function handleResetPersonalisation() {
-    setIsResetting(true)
-    try {
-      const res = await fetch('/api/settings/personalisation', { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to reset')
-      setActiveWeights(0)
-      setShowResetConfirm(false)
-      setResetDone(true)
-      setTimeout(() => setResetDone(false), 3000)
-    } catch (err) {
-      console.error(err)
-      setError('Failed to reset personalisation')
-    } finally {
-      setIsResetting(false)
-    }
   }
 
   async function handleSave() {
@@ -1360,56 +1333,6 @@ export default function SettingsPage() {
             </div>
           </section>
         )}
-
-        {/* Personalisation */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Personalisation</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-            SmartBrief learns from your feedback to surface sources you prefer
-          </p>
-          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            {activeWeights === null
-              ? 'Loading…'
-              : activeWeights === 0
-              ? 'No personalisation active — give feedback on articles to get started.'
-              : `Personalisation active — tracking ${activeWeights} source ${activeWeights === 1 ? 'preference' : 'preferences'}.`}
-          </p>
-          {resetDone && (
-            <p className="mb-3 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700 dark:bg-green-950/50 dark:text-green-400">
-              Personalisation reset. Your next briefing starts fresh.
-            </p>
-          )}
-          {!showResetConfirm ? (
-            <button
-              onClick={() => setShowResetConfirm(true)}
-              disabled={activeWeights === 0}
-              className="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/50"
-            >
-              Reset personalisation
-            </button>
-          ) : (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/50">
-              <p className="mb-3 text-xs text-red-700 dark:text-red-400">
-                This will delete all learned source preferences. Your feedback history is kept but won&apos;t be re-applied.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleResetPersonalisation}
-                  disabled={isResetting}
-                  className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
-                >
-                  {isResetting ? 'Resetting…' : 'Yes, reset'}
-                </button>
-                <button
-                  onClick={() => setShowResetConfirm(false)}
-                  className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
 
         {/* Newsletter Ingestion */}
         <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">

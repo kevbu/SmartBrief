@@ -92,11 +92,19 @@ export async function refreshNews(): Promise<{
     console.log(`Updated sentiment for ${sentimentResults.length} articles`)
   }
 
-  // 6. Generate top stories from recent articles
-  const recentArticles = await db.article.findMany({
+  // 6. Generate top stories from recent articles (last 12h; fallback to latest 100 if sparse)
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000)
+  let recentArticles = await db.article.findMany({
+    where: { publishedAt: { gte: twelveHoursAgo } },
     orderBy: { publishedAt: 'desc' },
-    take: 100,
+    take: 200,
   })
+  if (recentArticles.length < 5) {
+    recentArticles = await db.article.findMany({
+      orderBy: { publishedAt: 'desc' },
+      take: 100,
+    })
+  }
 
   // Map DB articles to Article type
   const articles: Article[] = recentArticles.map((a) => ({
@@ -126,6 +134,8 @@ export async function refreshNews(): Promise<{
             articleIds: JSON.stringify(ts.articleIds),
             sources: JSON.stringify(ts.sources),
             sentiment: ts.sentiment,
+            bullets: JSON.stringify(ts.bullets ?? []),
+            clusterArticles: JSON.stringify(ts.clusterArticles ?? []),
           },
         })
       } catch (err) {

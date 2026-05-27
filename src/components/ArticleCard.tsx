@@ -39,11 +39,15 @@ export default function ArticleCard({
   const [isRead, setIsRead] = useState(article.isRead)
   const [hidden, setHidden] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const [reasonVisible, setReasonVisible] = useState(false)
 
   // Skip signal: fire onSkip if article is visible >3s without being interacted with
   const cardRef = useRef<HTMLElement>(null)
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const interactedRef = useRef(article.isRead) // pre-read articles don't need skip
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!onSkip || interactedRef.current) return
@@ -65,6 +69,7 @@ export default function ArticleCard({
             clearTimeout(skipTimerRef.current)
             skipTimerRef.current = null
           }
+          setReasonVisible(false)
         }
       },
       { threshold: 0.5 }
@@ -78,6 +83,58 @@ export default function ArticleCard({
   // article.id and onSkip are stable across card's lifetime — safe deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [article.id])
+
+  useEffect(() => {
+    return () => {
+      if (pressTimerRef.current !== null) clearTimeout(pressTimerRef.current)
+      if (hoverTimerRef.current !== null) clearTimeout(hoverTimerRef.current)
+    }
+  }, [])
+
+  function shortenReason(reason: string): string {
+    if (reason.includes('a source you read often')) return `Source you trust · ${article.source}`
+    if (reason.includes('your most-read topic')) return reason.split(' — ')[0]
+    if (reason.includes('based on your settings')) return 'Relevant to your feed'
+    return reason
+  }
+
+  function handlePointerDown(e: React.PointerEvent) {
+    pointerDownPosRef.current = { x: e.clientX, y: e.clientY }
+    pressTimerRef.current = setTimeout(() => setReasonVisible(true), 500)
+  }
+
+  function handlePointerUp() {
+    if (pressTimerRef.current !== null) {
+      clearTimeout(pressTimerRef.current)
+      pressTimerRef.current = null
+    }
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!pointerDownPosRef.current) return
+    const dx = Math.abs(e.clientX - pointerDownPosRef.current.x)
+    const dy = Math.abs(e.clientY - pointerDownPosRef.current.y)
+    if (dx > 8 || dy > 8) {
+      if (pressTimerRef.current !== null) {
+        clearTimeout(pressTimerRef.current)
+        pressTimerRef.current = null
+      }
+    }
+  }
+
+  function handleMouseEnter() {
+    // Skip hover timer on touch devices — pointer handlers own the touch flow
+    if (window.matchMedia('(pointer: coarse)').matches) return
+    hoverTimerRef.current = setTimeout(() => setReasonVisible(true), 300)
+  }
+
+  function handleMouseLeave() {
+    if (hoverTimerRef.current !== null) {
+      clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = null
+    }
+    setReasonVisible(false)
+  }
 
   function handleClick() {
     // Cancel skip timer — user interacted with this card
@@ -153,6 +210,12 @@ export default function ArticleCard({
         isRead && 'opacity-60'
       )}
       onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onPointerMove={handlePointerMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -182,11 +245,16 @@ export default function ArticleCard({
             </p>
           )}
 
-          {/* Deep mode: "Why am I seeing this?" */}
+          {/* "Why am I seeing this?" — always-on in deep mode, on-demand in skim */}
           {depthMode === 'deep' ? (
             <p className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-300 dark:text-gray-600">
               <span>✦</span>
               <span>{article.reason ?? `From ${article.source} · ${article.category} · ${article.sentiment} tone`}</span>
+            </p>
+          ) : article.reason && reasonVisible ? (
+            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
+              <span>✦</span>
+              <span>{shortenReason(article.reason)}</span>
             </p>
           ) : null}
 
