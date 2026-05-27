@@ -34,6 +34,8 @@ export interface TopStory {
   sources: string[]
   sentiment: SentimentType
   createdAt: Date | string
+  bullets?: string[]
+  clusterArticles?: Array<{ title: string; source: string; url: string }>
 }
 
 export interface UserPreferences {

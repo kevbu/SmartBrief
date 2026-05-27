@@ -373,55 +373,35 @@ export default function HomePage() {
 
   const showSessionProgress = articles.length > 0 && !isLoading
 
-  // Build unified feed: interleave TopStoryCards and ArticleCards
+  // Build unified feed: all cluster cards first (sorted by source count), then unclustered articles
   function buildUnifiedFeed(articleList: Article[], stories: TopStory[]) {
-    // Filter stories by category if not 'all'
     const filteredStories =
       activeCategory === 'all'
         ? stories
         : stories.filter((s) => s.category === activeCategory)
 
-    // Build a map: articleId -> topStory (first cluster that claims this article)
-    const articleToStory = new Map<string, TopStory>()
-    for (const story of filteredStories) {
-      let ids: string[] = []
-      try {
-        ids = typeof story.articleIds === 'string'
-          ? (JSON.parse(story.articleIds) as string[])
-          : story.articleIds
-      } catch {
-        ids = []
-      }
-      for (const aid of ids) {
-        if (!articleToStory.has(aid)) {
-          articleToStory.set(aid, story)
+    const clusteredIds = new Set(
+      filteredStories.flatMap((s) => {
+        try {
+          return typeof s.articleIds === 'string'
+            ? (JSON.parse(s.articleIds) as string[])
+            : s.articleIds
+        } catch {
+          return []
         }
-      }
-    }
-
-    // Track which stories have already been inserted
-    const insertedStories = new Set<string>()
+      })
+    )
 
     type FeedItem =
       | { kind: 'article'; article: Article }
       | { kind: 'topStory'; story: TopStory }
 
-    const feed: FeedItem[] = []
-
-    for (const article of articleList) {
-      const story = articleToStory.get(article.id)
-      if (story) {
-        if (!insertedStories.has(story.id)) {
-          insertedStories.add(story.id)
-          feed.push({ kind: 'topStory', story })
-        }
-        // Skip subsequent articles from the same cluster
-      } else {
-        feed.push({ kind: 'article', article })
-      }
-    }
-
-    return feed
+    return [
+      ...filteredStories.map((story): FeedItem => ({ kind: 'topStory', story })),
+      ...articleList
+        .filter((a) => !clusteredIds.has(a.id))
+        .map((article): FeedItem => ({ kind: 'article', article })),
+    ]
   }
 
   const unifiedFeed = buildUnifiedFeed(displayedArticles, topStories)

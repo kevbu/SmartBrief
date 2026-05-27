@@ -134,34 +134,33 @@ export async function GET(request: Request) {
     // Get balance stats from ALL articles (not filtered by category)
     const balanceStats = computeBalanceStats(articles)
 
-    // Get top stories
+    // Get top stories — all of them, sort by source count client-side
     const topStoriesDb = await db.topStory.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 5,
     })
 
-    const topStories: TopStory[] = topStoriesDb.map((ts) => ({
-      id: ts.id,
-      title: ts.title,
-      summary: ts.summary,
-      category: ts.category,
-      articleIds: (() => {
-        try {
-          return JSON.parse(ts.articleIds) as string[]
-        } catch {
-          return []
-        }
-      })(),
-      sources: (() => {
-        try {
-          return JSON.parse(ts.sources) as string[]
-        } catch {
-          return []
-        }
-      })(),
-      sentiment: ts.sentiment as 'positive' | 'neutral' | 'negative',
-      createdAt: ts.createdAt,
-    }))
+    const topStories: TopStory[] = topStoriesDb
+      .map((ts) => ({
+        id: ts.id,
+        title: ts.title,
+        summary: ts.summary,
+        category: ts.category,
+        articleIds: (() => {
+          try { return JSON.parse(ts.articleIds) as string[] } catch { return [] }
+        })(),
+        sources: (() => {
+          try { return JSON.parse(ts.sources) as string[] } catch { return [] }
+        })(),
+        bullets: (() => {
+          try { return ts.bullets ? JSON.parse(ts.bullets) as string[] : undefined } catch { return undefined }
+        })(),
+        clusterArticles: (() => {
+          try { return ts.clusterArticles ? JSON.parse(ts.clusterArticles) as Array<{ title: string; source: string; url: string }> : undefined } catch { return undefined }
+        })(),
+        sentiment: ts.sentiment as 'positive' | 'neutral' | 'negative',
+        createdAt: ts.createdAt,
+      }))
+      .sort((a, b) => b.sources.length - a.sources.length)
 
     const hasApiKey = !!process.env.ANTHROPIC_API_KEY
 
