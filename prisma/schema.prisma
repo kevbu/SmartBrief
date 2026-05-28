@@ -47,6 +47,7 @@ model TopStory {
   sentiment       String   @default("neutral")
   bullets         String?
   clusterArticles String?
+  saved           Boolean  @default(false)
   createdAt       DateTime @default(now())
 }
 

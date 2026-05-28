@@ -10,6 +10,8 @@ interface FeedbackMenuProps {
   showTooltip?: boolean
   onTooltipDismissed?: () => void
   onFeedback?: (feedback: FeedbackType) => void
+  /** Feedback options to hide from the menu */
+  excludeOptions?: FeedbackType[]
 }
 
 const FEEDBACK_OPTIONS: { value: FeedbackType; label: string; emoji: string }[] = [
@@ -26,7 +28,11 @@ export default function FeedbackMenu({
   showTooltip = false,
   onTooltipDismissed,
   onFeedback,
+  excludeOptions,
 }: FeedbackMenuProps) {
+  const visibleOptions = excludeOptions
+    ? FEEDBACK_OPTIONS.filter((o) => !excludeOptions.includes(o.value))
+    : FEEDBACK_OPTIONS
   const [open, setOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -96,7 +102,7 @@ export default function FeedbackMenu({
           <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
             Tune your feed
           </p>
-          {FEEDBACK_OPTIONS.map((opt) => (
+          {visibleOptions.map((opt) => (
             <button
               key={opt.value}
               role="menuitem"

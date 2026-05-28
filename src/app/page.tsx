@@ -286,6 +286,25 @@ export default function HomePage() {
     )
   }
 
+  function handleClusterToggleSave(id: string) {
+    fetch(`/api/top-stories/${id}/save`, { method: 'POST' }).catch(console.error)
+    setTopStories((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, saved: !s.saved } : s))
+    )
+  }
+
+  async function handleClusterFeedback(id: string, feedback: FeedbackType) {
+    try {
+      await fetch(`/api/top-stories/${id}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback }),
+      })
+    } catch (err) {
+      console.error('Cluster feedback error:', err)
+    }
+  }
+
   const FEEDBACK_LABELS: Record<FeedbackType, string> = {
     'more-like-this': 'More like this saved',
     'less-like-this': 'Less like this saved',
@@ -566,6 +585,9 @@ export default function HomePage() {
                     key={`ts-${item.story.id}`}
                     story={item.story}
                     onSelect={(ts) => setSelectedItem({ type: 'topStory', data: ts })}
+                    onFeedback={handleClusterFeedback}
+                    onToggleSave={handleClusterToggleSave}
+                    isSaved={item.story.saved}
                   />
                 ) : (
                   <ArticleCard

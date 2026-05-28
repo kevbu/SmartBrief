@@ -36,6 +36,7 @@ export interface TopStory {
   createdAt: Date | string
   bullets?: string[]
   clusterArticles?: Array<{ title: string; source: string; url: string }>
+  saved?: boolean
 }
 
 export interface UserPreferences {
