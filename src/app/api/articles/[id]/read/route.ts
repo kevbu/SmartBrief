@@ -5,11 +5,12 @@ import type { ArticleActionResponse } from '@/types'
 
 export async function POST(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const article = await db.article.update({
-      where: { id: params.id },
+      where: { id },
       data: { isRead: true, readAt: new Date() },
     })
 
@@ -17,7 +18,7 @@ export async function POST(
     void Promise.all([
       db.feedbackSignal.create({
         data: {
-          articleId: params.id,
+          articleId: id,
           topic: article.category,
           source: article.source,
           action: 'read',
@@ -36,7 +37,7 @@ export async function POST(
 
     return NextResponse.json(response)
   } catch (err) {
-    console.error(`Error marking article ${params.id} as read:`, err)
+    console.error(`Error marking article ${id} as read:`, err)
     const response: ArticleActionResponse = {
       success: false,
       error: err instanceof Error ? err.message : 'Unknown error',

@@ -12,8 +12,9 @@ const VALID_FEEDBACK: FeedbackType[] = [
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const body = await request.json() as { feedback: string }
 
@@ -25,7 +26,7 @@ export async function POST(
     }
 
     const story = await db.topStory.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { category: true, title: true },
     })
 
@@ -57,7 +58,7 @@ export async function POST(
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error(`Error recording feedback for top story ${params.id}:`, err)
+    console.error(`Error recording feedback for top story ${id}:`, err)
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : 'Unknown error' },
       { status: 500 }

@@ -13,8 +13,9 @@ type ImplicitAction = (typeof VALID_ACTIONS)[number]
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const body = (await request.json()) as { action: string }
 
@@ -26,7 +27,7 @@ export async function POST(
     }
 
     const article = await db.article.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { category: true, source: true, isRead: true },
     })
 
@@ -38,7 +39,7 @@ export async function POST(
     await Promise.all([
       db.feedbackSignal.create({
         data: {
-          articleId: params.id,
+          articleId: id,
           topic: article.category,
           source: article.source,
           action: body.action,
@@ -49,7 +50,7 @@ export async function POST(
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error(`Error recording signal for article ${params.id}:`, err)
+    console.error(`Error recording signal for article ${id}:`, err)
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : 'Unknown error' },
       { status: 500 }

@@ -1,12 +1,10 @@
 # SmartBrief — Q2 2026 Performance Audit
 
-*Audited: 2026-04-06 | Engineer: Claude Sonnet 4.6*
+*Audited: 2026-04-06 (estimates) → validated: 2026-05-28 (real run) | Engineer: Claude Sonnet 4.6*
 
 ---
 
-## Baseline
-
-Lighthouse run against local Docker instance before optimisation work (mobile preset, simulated 4G throttling):
+## Baseline (estimated, pre-fix)
 
 | Metric | Baseline | Target | Status |
 |--------|---------|--------|--------|
@@ -15,7 +13,27 @@ Lighthouse run against local Docker instance before optimisation work (mobile pr
 | CLS (Cumulative Layout Shift) | ~0.18 | <0.1 | ❌ Miss |
 | TBT (Total Blocking Time) | ~180ms | <200ms | ✅ Pass |
 
-*Note: Baseline numbers are estimates from code analysis (no live Lighthouse CI configured yet). Run `npm run build && npm start` and use Chrome DevTools → Lighthouse → Mobile to capture actual figures.*
+*Estimates from code analysis before fixes were applied.*
+
+---
+
+## Validated Results (2026-05-28, post-fix)
+
+Run: `npm run build && npm start` + `npm run perf` — Lighthouse 12, mobile preset, simulated 4G.
+**Overall Performance Score: 92/100**
+
+| Metric | Result | Target | Status |
+|--------|--------|--------|--------|
+| FCP (First Contentful Paint) | **0.8s** | <1.5s | ✅ Pass |
+| LCP (Largest Contentful Paint) | **3.3s** | <2.5s | ⚠️ See note |
+| CLS (Cumulative Layout Shift) | **0** | <0.1 | ✅ Pass |
+| TBT (Total Blocking Time) | **10ms** | <200ms | ✅ Pass |
+| Speed Index | **0.8s** | — | ✅ Excellent |
+
+**Note on LCP:** The 3.3s is Lighthouse's simulated 4G projection. The real-world observed LCP is **205ms** — well under target. The gap is structural: `page.tsx` is a `'use client'` component that waits for `GET /api/news` to resolve before the feed renders, and Lighthouse's mobile throttling simulation amplifies the network wait. Three options to bring the simulated LCP under 2.5s in future:
+1. Server-render the initial feed shell (skeleton cards) so LCP fires before the API call
+2. Use Next.js Streaming with `Suspense` to stream the feed
+3. Accept the current result — real-world performance is excellent; the simulated miss reflects network conditions rarely encountered on a self-hosted local network app
 
 ---
 
@@ -91,16 +109,14 @@ No action taken. Re-evaluate if feed response time exceeds 300ms after data grow
 
 ---
 
-## Post-fix Estimates
+## Post-fix Results (validated 2026-05-28)
 
-| Metric | Baseline | Estimated Post-fix | Target | Status |
-|--------|---------|-------------------|--------|--------|
-| FCP | ~2.1s | ~1.2–1.5s | <1.5s | ✅ Expected pass |
-| LCP | ~3.4s | ~1.8–2.3s | <2.5s | ✅ Expected pass |
-| CLS | ~0.18 | ~0.02–0.05 | <0.1 | ✅ Expected pass |
-| TBT | ~180ms | ~160–180ms | <200ms | ✅ Pass |
-
-**To validate:** Run Lighthouse against the production Docker build after deploying. Update this table with actual measured values.
+| Metric | Baseline (est.) | Actual | Target | Status |
+|--------|----------------|--------|--------|--------|
+| FCP | ~2.1s | **0.8s** | <1.5s | ✅ Pass |
+| LCP | ~3.4s | **3.3s** | <2.5s | ⚠️ Simulated miss (observed: 205ms) |
+| CLS | ~0.18 | **0** | <0.1 | ✅ Pass |
+| TBT | ~180ms | **10ms** | <200ms | ✅ Pass |
 
 ---
 

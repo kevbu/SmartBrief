@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout']
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const password = process.env.SMARTBRIEF_PASSWORD
   // If no password set, allow everything (local dev)
   if (!password) return NextResponse.next()

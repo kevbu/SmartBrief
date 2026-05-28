@@ -4,10 +4,11 @@ import type { ArticleActionResponse } from '@/types'
 
 export async function POST(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    const existing = await db.article.findUnique({ where: { id: params.id } })
+    const existing = await db.article.findUnique({ where: { id } })
 
     if (!existing) {
       return NextResponse.json(
@@ -17,7 +18,7 @@ export async function POST(
     }
 
     const article = await db.article.update({
-      where: { id: params.id },
+      where: { id },
       data: { isSaved: !existing.isSaved },
     })
 
@@ -31,7 +32,7 @@ export async function POST(
 
     return NextResponse.json(response)
   } catch (err) {
-    console.error(`Error toggling save for article ${params.id}:`, err)
+    console.error(`Error toggling save for article ${id}:`, err)
     const response: ArticleActionResponse = {
       success: false,
       error: err instanceof Error ? err.message : 'Unknown error',
