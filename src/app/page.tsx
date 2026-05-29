@@ -1,13 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Header from '@/components/Header'
 import TopicTabs from '@/components/TopicTabs'
 import TopStoryCard from '@/components/TopStoryCard'
-import ArticleCard from '@/components/ArticleCard'
 import ArticleDetail from '@/components/ArticleDetail'
 import BalanceMeter from '@/components/BalanceMeter'
-import SessionProgress from '@/components/SessionProgress'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import CatchUpBanner from '@/components/CatchUpBanner'
 import Link from 'next/link'
@@ -63,29 +61,11 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null)
 
-  // Session state: how many articles in the current briefing session
-  const [sessionLimit, setSessionLimit] = useState(15)
-  const [articlesRead, setArticlesRead] = useState(0)
-  const [sessionExpanded, setSessionExpanded] = useState(false)
-
   // Catch-up mode
   const [catchUpMode, setCatchUpMode] = useState(false)
   const [catchUpGapDays, setCatchUpGapDays] = useState(0)
   const [catchUpSince, setCatchUpSince] = useState<string | null>(null)
   const [catchUpDismissed, setCatchUpDismissed] = useState(false)
-
-  // Feedback — undo toast: write immediately, allow DELETE within 5 s
-  const [undoToast, setUndoToast] = useState<string | null>(null)
-  const pendingFeedbackRef = useRef<{
-    feedbackId: string
-    id: string        // articleId
-    feedback: FeedbackType
-    source: string
-  } | null>(null)
-  // Separate timer ref: only used to defer the in-session hide-source feed filter
-  const hideSourceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Auto-dismiss undo toast after 5 s
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Recap teaser — shown on briefing complete screen
   const [recapTeaser, setRecapTeaser] = useState<{ totalRead: number; topTopic: string | null } | null>(null)
@@ -104,22 +84,6 @@ export default function HomePage() {
       .catch(() => null)
   }, [])
 
-  // First-time discovery tooltip
-  const [showFeedbackTooltip, setShowFeedbackTooltip] = useState(false)
-  useEffect(() => {
-    if (!localStorage.getItem('smartbrief:feedback-tooltip-shown')) {
-      setShowFeedbackTooltip(true)
-      // Auto-dismiss after 6 s if user never taps the button
-      const t = setTimeout(() => setShowFeedbackTooltip(false), 6000)
-      return () => clearTimeout(t)
-    }
-  }, [])
-
-  function dismissFeedbackTooltip() {
-    setShowFeedbackTooltip(false)
-    localStorage.setItem('smartbrief:feedback-tooltip-shown', '1')
-  }
-
   const fetchNews = useCallback(async (category: string, mode: 'standard' | 'catchup' = 'standard', since?: string) => {
     try {
       setError(null)
@@ -137,9 +101,6 @@ export default function HomePage() {
       setPreferences(data.preferences)
       setLastRefreshed(data.lastRefreshed)
       setHasApiKey(data.hasApiKey)
-      if (data.preferences?.sessionSize) {
-        setSessionLimit(data.preferences.sessionSize)
-      }
     } catch (err) {
       setError('Failed to load news. Please try again.')
       console.error(err)
@@ -155,8 +116,6 @@ export default function HomePage() {
       const data = await res.json()
       setLastRefreshed(data.lastRefreshed)
       await fetchNews(activeCategory)
-      setArticlesRead(0)
-      setSessionExpanded(false)
     } catch (err) {
       console.error('Refresh error:', err)
     } finally {
@@ -167,8 +126,6 @@ export default function HomePage() {
   const handleDismissCatchUp = useCallback(async () => {
     setCatchUpDismissed(true)
     setCatchUpMode(false)
-    setArticlesRead(0)
-    setSessionExpanded(false)
     await fetchNews(activeCategory, 'standard')
   }, [fetchNews, activeCategory])
 
@@ -221,9 +178,6 @@ export default function HomePage() {
           const data: NewsApiResponse = await res.json()
           setLastRefreshed(data.lastRefreshed)
           setHasApiKey(data.hasApiKey)
-          if (data.preferences?.sessionSize) {
-            setSessionLimit(data.preferences.sessionSize)
-          }
 
           const intervalMins = data.preferences?.refreshIntervalMins ?? 60
           const shouldRefresh =
@@ -268,23 +222,9 @@ export default function HomePage() {
       } else {
         fetchNews(activeCategory)
       }
-      setArticlesRead(0)
-      setSessionExpanded(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCategory])
-
-  function handleMarkRead(id: string) {
-    fetch(`/api/articles/${id}/read`, { method: 'POST' }).catch(console.error)
-    setArticlesRead((n) => n + 1)
-  }
-
-  function handleToggleSave(id: string) {
-    fetch(`/api/articles/${id}/save`, { method: 'POST' }).catch(console.error)
-    setArticles((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, isSaved: !a.isSaved } : a))
-    )
-  }
 
   function handleClusterToggleSave(id: string) {
     fetch(`/api/top-stories/${id}/save`, { method: 'POST' }).catch(console.error)
@@ -305,131 +245,25 @@ export default function HomePage() {
     }
   }
 
-  const FEEDBACK_LABELS: Record<FeedbackType, string> = {
-    'more-like-this': 'More like this saved',
-    'less-like-this': 'Less like this saved',
-    'too-negative':   'Marked too negative',
-    'off-topic':      'Marked off-topic',
-    'hide-source':    'Source hidden',
-  }
-
-  async function handleFeedback(id: string, feedback: FeedbackType) {
-    // Dismiss tooltip on first use
-    if (showFeedbackTooltip) dismissFeedbackTooltip()
-
-    // Clear any previous undo state
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
-    if (hideSourceTimerRef.current) clearTimeout(hideSourceTimerRef.current)
-
-    const article = articles.find((a) => a.id === id)
-    const source = article?.source ?? ''
-
-    // Write to SQLite immediately (spec: "not queued")
-    let feedbackId = ''
-    try {
-      const res = await fetch(`/api/articles/${id}/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feedback, source }),
-      })
-      const data = await res.json() as { success: boolean; feedbackId?: string }
-      feedbackId = data.feedbackId ?? ''
-    } catch (err) {
-      console.error('Feedback error:', err)
-    }
-
-    pendingFeedbackRef.current = { feedbackId, id, feedback, source }
-    setUndoToast(FEEDBACK_LABELS[feedback])
-
-    // Auto-dismiss toast after 5 s and apply deferred in-session effects
-    undoTimerRef.current = setTimeout(() => {
-      setUndoToast(null)
-      pendingFeedbackRef.current = null
-    }, 5000)
-
-    // Defer the in-session feed filter for hide-source so undo can still reverse it
-    if (feedback === 'hide-source' && article) {
-      hideSourceTimerRef.current = setTimeout(() => {
-        setArticles((prev) => prev.filter((a) => a.source !== article.source))
-      }, 5000)
-    }
-  }
-
-  function handleUndoFeedback() {
-    const pending = pendingFeedbackRef.current
-    if (!pending) return
-
-    // Cancel timers
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
-    if (hideSourceTimerRef.current) clearTimeout(hideSourceTimerRef.current)
-    pendingFeedbackRef.current = null
-    setUndoToast(null)
-
-    // Delete the DB record and reverse side effects
-    if (pending.feedbackId) {
-      fetch(`/api/articles/${pending.id}/feedback?feedbackId=${pending.feedbackId}`, {
-        method: 'DELETE',
-      }).catch(console.error)
-    }
-  }
-
-  function handleSkip(id: string) {
-    // Fire-and-forget implicit skip signal — no undo, no UI change
-    fetch(`/api/articles/${id}/signal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'skip' }),
-    }).catch((e) => console.error('[skip-signal] failed:', e))
-  }
-
   const depthMode = preferences?.depthMode ?? 'skim'
   const moodPreset = preferences?.moodPreset ?? 'balanced'
 
-  // Session-limited articles
-  const displayedArticles = sessionExpanded
-    ? articles
-    : articles.slice(0, sessionLimit)
-
-  const showSessionProgress = articles.length > 0 && !isLoading
-
-  // Build unified feed: all cluster cards first (sorted by source count), then unclustered articles
-  function buildUnifiedFeed(articleList: Article[], stories: TopStory[]) {
+  // Build feed: only clusters with 2+ sources, sorted by source count
+  function buildUnifiedFeed(stories: TopStory[]) {
     const filteredStories =
       activeCategory === 'all'
         ? stories
         : stories.filter((s) => s.category === activeCategory)
 
-    const clusteredIds = new Set(
-      filteredStories.flatMap((s) => {
-        try {
-          return typeof s.articleIds === 'string'
-            ? (JSON.parse(s.articleIds) as string[])
-            : s.articleIds
-        } catch {
-          return []
-        }
-      })
-    )
-
-    type FeedItem =
-      | { kind: 'article'; article: Article }
-      | { kind: 'topStory'; story: TopStory }
-
-    return [
-      ...filteredStories.map((story): FeedItem => ({ kind: 'topStory', story })),
-      ...articleList
-        .filter((a) => !clusteredIds.has(a.id))
-        .map((article): FeedItem => ({ kind: 'article', article })),
-    ]
+    return filteredStories.filter((s) => s.sources.length >= 2)
   }
 
-  const unifiedFeed = buildUnifiedFeed(displayedArticles, topStories)
-  const firstArticleId = (unifiedFeed.find((i) => i.kind === 'article') as { kind: 'article'; article: Article } | undefined)?.article.id ?? null
+  const unifiedFeed = buildUnifiedFeed(topStories)
 
   // On Sunday (0) and Monday (1), promote the recap teaser above the article list
   const todayDow = new Date().getDay()
   const isWeekendReset = todayDow === 0 || todayDow === 1
-  const showRecapTeaser = !sessionExpanded && articles.length > sessionLimit && !!recapTeaser && recapTeaser.totalRead > 0
+  const showRecapTeaser = !!recapTeaser && recapTeaser.totalRead >= 3
 
   return (
     <div>
@@ -569,24 +403,14 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Session progress */}
-          {showSessionProgress && !sessionExpanded && (
-            <SessionProgress
-              current={articlesRead}
-              total={sessionLimit}
-              onLoadMore={() => setSessionExpanded(true)}
-              isCatchUp={catchUpMode && !catchUpDismissed}
-            />
-          )}
-
-          {/* Articles */}
-          {isRefreshing && articles.length === 0 ? (
+          {/* Feed */}
+          {isRefreshing && unifiedFeed.length === 0 ? (
             <div className="pt-4">
               <SkeletonCard />
               <SkeletonCard />
               <SkeletonCard />
             </div>
-          ) : articles.length === 0 ? (
+          ) : unifiedFeed.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-slate-400 dark:text-slate-500">
@@ -602,58 +426,19 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="pt-1">
-              {unifiedFeed.map((item) =>
-                item.kind === 'topStory' ? (
-                  <TopStoryCard
-                    key={`ts-${item.story.id}`}
-                    story={item.story}
-                    onSelect={(ts) => setSelectedItem({ type: 'topStory', data: ts })}
-                    onFeedback={handleClusterFeedback}
-                    onToggleSave={handleClusterToggleSave}
-                    isSaved={item.story.saved}
-                  />
-                ) : (
-                  <ArticleCard
-                    key={item.article.id}
-                    article={item.article}
-                    depthMode={depthMode}
-                    onMarkRead={handleMarkRead}
-                    onToggleSave={handleToggleSave}
-                    onFeedback={handleFeedback}
-                    onSkip={handleSkip}
-                    onSelect={(article) => setSelectedItem({ type: 'article', data: article })}
-                    showFeedbackTooltip={showFeedbackTooltip && item.article.id === firstArticleId}
-                    onFeedbackTooltipDismissed={dismissFeedbackTooltip}
-                  />
-                )
-              )}
+              {unifiedFeed.map((story) => (
+                <TopStoryCard
+                  key={`ts-${story.id}`}
+                  story={story}
+                  depthMode={depthMode}
+                  onSelect={(ts) => setSelectedItem({ type: 'topStory', data: ts })}
+                  onFeedback={handleClusterFeedback}
+                  onToggleSave={handleClusterToggleSave}
+                  isSaved={story.saved}
+                />
+              ))}
 
-              {/* Show session complete / load more when not expanded */}
-              {!sessionExpanded && articles.length > sessionLimit && (
-                <div className="mx-4 mb-4 mt-2 rounded-2xl bg-emerald-50 p-5 text-center ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:ring-emerald-900/60">
-                  <div className="mb-2 flex justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8 text-emerald-500">
-                      <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <h3 className="mb-1 text-base font-bold text-emerald-800 dark:text-emerald-200">
-                    {catchUpMode && !catchUpDismissed ? "You're caught up!" : 'Briefing complete!'}
-                  </h3>
-                  <p className="mb-3 text-xs text-emerald-600 dark:text-emerald-400">
-                    {catchUpMode && !catchUpDismissed
-                      ? `Top stories from the last ${catchUpGapDays} days. Great job catching up.`
-                      : `You've read your ${sessionLimit}-story brief. Great job staying informed.`}
-                  </p>
-                  <button
-                    onClick={() => setSessionExpanded(true)}
-                    className="cursor-pointer rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
-                  >
-                    Load more stories
-                  </button>
-                </div>
-              )}
-
-              {/* This Week recap teaser — shown after briefing complete (standard days only; Sun/Mon shows above article list) */}
+              {/* This Week recap teaser */}
               {showRecapTeaser && !isWeekendReset && (
                 <Link
                   href="/recap"
@@ -681,19 +466,6 @@ export default function HomePage() {
             </div>
           )}
         </>
-      )}
-
-      {/* Undo toast */}
-      {undoToast && (
-        <div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-slate-900 py-2.5 pl-4 pr-2 text-sm text-white shadow-xl shadow-slate-900/20">
-          <span>{undoToast}</span>
-          <button
-            onClick={handleUndoFeedback}
-            className="cursor-pointer rounded-full bg-white/20 px-3 py-1 text-xs font-semibold transition-colors hover:bg-white/30"
-          >
-            Undo
-          </button>
-        </div>
       )}
 
       {/* Article Detail Modal */}

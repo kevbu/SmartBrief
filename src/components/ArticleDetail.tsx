@@ -65,8 +65,11 @@ export default function ArticleDetail({
     fetchBullets()
   }, [article, topStory])
 
-  function getTopStoryArticles(): Article[] {
+  function getTopStoryArticles(): Array<{ title?: string; source: string; url: string }> {
     if (!topStory) return []
+    if (topStory.clusterArticles && topStory.clusterArticles.length > 0) {
+      return topStory.clusterArticles
+    }
     let ids: string[] = []
     try {
       ids = typeof topStory.articleIds === 'string'
@@ -187,7 +190,7 @@ export default function ArticleDetail({
               topStoryArticles.length > 0 ? (
                 topStoryArticles.map((a) => (
                   <a
-                    key={a.id}
+                    key={a.url}
                     href={a.url}
                     target="_blank"
                     rel="noopener noreferrer"

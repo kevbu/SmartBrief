@@ -2,10 +2,11 @@
 
 import { clsx } from 'clsx'
 import FeedbackMenu from './FeedbackMenu'
-import type { TopStory, FeedbackType } from '@/types'
+import type { TopStory, FeedbackType, DepthMode } from '@/types'
 
 interface TopStoryCardProps {
   story: TopStory
+  depthMode?: DepthMode
   onSelect?: (topStory: TopStory) => void
   onFeedback?: (id: string, feedback: FeedbackType) => void
   onToggleSave?: (id: string) => void
@@ -73,6 +74,7 @@ const categoryLabels: Record<string, string> = {
 
 export default function TopStoryCard({
   story,
+  depthMode = 'skim',
   onSelect,
   onFeedback,
   onToggleSave,
@@ -126,24 +128,41 @@ export default function TopStoryCard({
           </h2>
 
           {/* Bullets or summary */}
-          {story.bullets && story.bullets.length > 0 ? (
-            <ul className="mb-3 space-y-1.5">
-              {story.bullets.slice(0, 2).map((b, i) => (
-                <li key={i} className="flex gap-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                  <span className="mt-0.5 flex-shrink-0 text-slate-300 dark:text-slate-600">–</span>
-                  <span>{b}</span>
-                </li>
-              ))}
-              {story.bullets.length > 2 && (
-                <li className="pl-4 text-xs text-slate-400 dark:text-slate-500">
-                  +{story.bullets.length - 2} more…
-                </li>
-              )}
-            </ul>
+          {depthMode === 'deep' ? (
+            story.bullets && story.bullets.length > 0 ? (
+              <ul className="mb-3 space-y-1.5">
+                {story.bullets.map((b, i) => (
+                  <li key={i} className="flex gap-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                    <span className="mt-0.5 flex-shrink-0 text-slate-300 dark:text-slate-600">–</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mb-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                {story.summary}
+              </p>
+            )
           ) : (
-            <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-              {story.summary}
-            </p>
+            story.bullets && story.bullets.length > 0 ? (
+              <ul className="mb-3 space-y-1">
+                {story.bullets.slice(0, 2).map((b, i) => (
+                  <li key={i} className="flex gap-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                    <span className="mt-0.5 flex-shrink-0 text-slate-300 dark:text-slate-600">–</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+                {story.bullets.length > 2 && (
+                  <li className="pl-4 text-xs text-slate-400 dark:text-slate-500">
+                    +{story.bullets.length - 2} more…
+                  </li>
+                )}
+              </ul>
+            ) : (
+              <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                {story.summary}
+              </p>
+            )
           )}
 
           {/* Source pills */}
@@ -166,32 +185,29 @@ export default function TopStoryCard({
           )}
 
           {/* Action row */}
-          <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={handleSave}
+              aria-label={isSaved ? 'Unsave story' : 'Save story'}
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              {isSaved ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-blue-500">
+                  <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4 text-slate-400 dark:text-slate-500">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                </svg>
+              )}
+            </button>
             <FeedbackMenu
               articleId={story.id}
               source=""
               excludeOptions={['hide-source']}
               onFeedback={(feedback) => onFeedback?.(story.id, feedback)}
+              placement="right"
             />
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 dark:text-slate-500">Tap for sources</span>
-              <button
-                onClick={handleSave}
-                aria-label={isSaved ? 'Unsave story' : 'Save story'}
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                {isSaved ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-blue-500">
-                    <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4 text-slate-400 dark:text-slate-500">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                  </svg>
-                )}
-              </button>
-            </div>
           </div>
         </div>
       </div>

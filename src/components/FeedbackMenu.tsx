@@ -10,6 +10,7 @@ interface FeedbackMenuProps {
   onTooltipDismissed?: () => void
   onFeedback?: (feedback: FeedbackType) => void
   excludeOptions?: FeedbackType[]
+  placement?: 'left' | 'right'
 }
 
 function ThumbUpIcon() {
@@ -70,6 +71,7 @@ export default function FeedbackMenu({
   onTooltipDismissed,
   onFeedback,
   excludeOptions,
+  placement = 'right',
 }: FeedbackMenuProps) {
   const visibleOptions = excludeOptions
     ? FEEDBACK_OPTIONS.filter((o) => !excludeOptions.includes(o.value))
@@ -137,7 +139,7 @@ export default function FeedbackMenu({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-1 w-52 rounded-2xl border border-slate-100 bg-white py-1.5 shadow-xl shadow-slate-200/50 dark:border-slate-700/60 dark:bg-slate-900 dark:shadow-none"
+          className={`absolute ${placement === 'left' ? 'left-0' : 'right-0'} z-30 mt-1 w-52 rounded-2xl border border-slate-100 bg-white py-1.5 shadow-xl shadow-slate-200/50 dark:border-slate-700/60 dark:bg-slate-900 dark:shadow-none`}
           onClick={(e) => e.stopPropagation()}
         >
           <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
