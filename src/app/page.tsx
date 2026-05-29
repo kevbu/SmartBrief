@@ -425,7 +425,7 @@ export default function HomePage() {
               </p>
             </div>
           ) : (
-            <div className="pt-1">
+            <div className="pt-1 lg:grid lg:grid-cols-2 lg:items-start">
               {unifiedFeed.map((story) => (
                 <TopStoryCard
                   key={`ts-${story.id}`}
