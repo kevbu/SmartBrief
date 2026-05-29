@@ -26,21 +26,21 @@ const TOPIC_LABELS: Record<string, string> = {
   technology: 'Tech & AI',
   science: 'Science & Health',
   business: 'Business',
-  world: 'World News',
+  world: 'World',
   positive: 'Bright Spots',
 }
 
 function SkeletonCard() {
   return (
-    <div className="mx-4 mb-3 rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+    <div className="mx-4 mb-2 rounded-2xl bg-white p-4 ring-1 ring-slate-100 dark:bg-slate-900 dark:ring-slate-800">
       <div className="mb-2 flex gap-2">
-        <div className="h-3 w-12 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
-        <div className="h-3 w-8 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+        <div className="h-3 w-12 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+        <div className="h-3 w-8 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
       </div>
-      <div className="mb-1.5 h-4 w-full animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
-      <div className="mb-3 h-4 w-3/4 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
-      <div className="h-3 w-full animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
-      <div className="mt-1 h-3 w-2/3 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+      <div className="mb-1.5 h-4 w-full animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+      <div className="mb-3 h-4 w-3/4 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+      <div className="h-3 w-full animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+      <div className="mt-1 h-3 w-2/3 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
     </div>
   )
 }
@@ -442,7 +442,7 @@ export default function HomePage() {
       />
 
       {!hasApiKey && (
-        <div className="mx-4 mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+        <div className="mx-4 mt-3 rounded-2xl bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900/60">
           <strong>AI features disabled.</strong> Add your{' '}
           <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/40">ANTHROPIC_API_KEY</code>{' '}
           to{' '}
@@ -452,7 +452,7 @@ export default function HomePage() {
       )}
 
       {error && (
-        <div className="mx-4 mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/50 dark:text-red-400">
+        <div className="mx-4 mt-3 rounded-2xl bg-red-50 p-3 text-xs text-red-700 ring-1 ring-red-100 dark:bg-red-950/40 dark:text-red-400 dark:ring-red-900/60">
           {error}
         </div>
       )}
@@ -488,14 +488,19 @@ export default function HomePage() {
 
           {/* This Week recap teaser — promoted above article list on Sunday/Monday */}
           {isWeekendReset && showRecapTeaser && (
-            <div className="px-4 pt-3">
+            <div className="px-4 pt-2">
               <Link
                 href="/recap"
-                className="flex items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 transition-transform active:scale-[0.99] dark:bg-indigo-950/50"
+                className="flex cursor-pointer items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 ring-1 ring-indigo-100 transition-all active:scale-[0.99] dark:bg-indigo-950/40 dark:ring-indigo-900/60"
               >
                 <div>
-                  <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">📊 This Week&apos;s Recap</p>
-                  <p className="mt-0.5 text-xs text-indigo-500 leading-snug dark:text-indigo-400">
+                  <p className="flex items-center gap-1.5 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                      <path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3" />
+                    </svg>
+                    This Week&apos;s Recap
+                  </p>
+                  <p className="mt-0.5 text-xs leading-snug text-indigo-500 dark:text-indigo-400">
                     You read {recapTeaser!.totalRead} {recapTeaser!.totalRead === 1 ? 'story' : 'stories'} this week
                     {recapTeaser!.topTopic ? ` — mostly ${TOPIC_LABELS[recapTeaser!.topTopic] ?? recapTeaser!.topTopic}` : ''}.
                     See your full reading summary.
@@ -517,8 +522,8 @@ export default function HomePage() {
           {/* Depth mode toggle */}
           {articles.length > 0 && (
             <div className="mx-4 mb-2 flex items-center gap-2">
-              <span className="text-xs text-gray-400 dark:text-gray-500">View:</span>
-              <div className="flex rounded-lg bg-gray-100 p-0.5 dark:bg-gray-800">
+              <span className="text-xs text-slate-400 dark:text-slate-500">View:</span>
+              <div className="flex rounded-xl bg-slate-100 p-0.5 dark:bg-slate-800">
                 {(['skim', 'deep'] as const).map((mode) => (
                   <button
                     key={mode}
@@ -537,13 +542,27 @@ export default function HomePage() {
                         console.error(err)
                       }
                     }}
-                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                    className={`flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
                       depthMode === mode
-                        ? 'bg-white text-slate-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
-                        : 'text-gray-500 dark:text-gray-400'
+                        ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
+                        : 'text-slate-500 dark:text-slate-400'
                     }`}
                   >
-                    {mode === 'skim' ? '⚡ Skim' : '📖 Deep'}
+                    {mode === 'skim' ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3">
+                          <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.257a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .906-.143Z" clipRule="evenodd" />
+                        </svg>
+                        Skim
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                        </svg>
+                        Deep
+                      </>
+                    )}
                   </button>
                 ))}
               </div>
@@ -569,11 +588,15 @@ export default function HomePage() {
             </div>
           ) : articles.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <span className="mb-3 text-4xl">📰</span>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-slate-400 dark:text-slate-500">
+                  <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2M18 14h-8M15 18h-5M10 6h8v4h-8V6Z" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                 No articles yet
               </p>
-              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                 Tap the refresh button to fetch news
               </p>
             </div>
@@ -607,8 +630,12 @@ export default function HomePage() {
 
               {/* Show session complete / load more when not expanded */}
               {!sessionExpanded && articles.length > sessionLimit && (
-                <div className="mx-4 mb-4 mt-2 rounded-2xl bg-emerald-50 p-5 text-center dark:bg-emerald-950/50">
-                  <div className="mb-2 text-3xl">🌟</div>
+                <div className="mx-4 mb-4 mt-2 rounded-2xl bg-emerald-50 p-5 text-center ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:ring-emerald-900/60">
+                  <div className="mb-2 flex justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8 text-emerald-500">
+                      <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
+                    </svg>
+                  </div>
                   <h3 className="mb-1 text-base font-bold text-emerald-800 dark:text-emerald-200">
                     {catchUpMode && !catchUpDismissed ? "You're caught up!" : 'Briefing complete!'}
                   </h3>
@@ -619,7 +646,7 @@ export default function HomePage() {
                   </p>
                   <button
                     onClick={() => setSessionExpanded(true)}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+                    className="cursor-pointer rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
                   >
                     Load more stories
                   </button>
@@ -630,11 +657,11 @@ export default function HomePage() {
               {showRecapTeaser && !isWeekendReset && (
                 <Link
                   href="/recap"
-                  className="mx-4 mb-4 flex items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 active:scale-98 transition-transform dark:bg-indigo-950/50"
+                  className="mx-4 mb-4 flex cursor-pointer items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 ring-1 ring-indigo-100 transition-all active:scale-[0.99] dark:bg-indigo-950/40 dark:ring-indigo-900/60"
                 >
                   <div>
                     <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">This Week</p>
-                    <p className="mt-0.5 text-[11px] text-indigo-500 leading-snug dark:text-indigo-400">
+                    <p className="mt-0.5 text-[11px] leading-snug text-indigo-500 dark:text-indigo-400">
                       You read {recapTeaser.totalRead} {recapTeaser.totalRead === 1 ? 'story' : 'stories'} this week
                       {recapTeaser.topTopic ? ` — mostly ${TOPIC_LABELS[recapTeaser.topTopic] ?? recapTeaser.topTopic}` : ''}.
                       Tap to see your full recap.
@@ -648,7 +675,7 @@ export default function HomePage() {
 
               {isRefreshing && (
                 <div className="flex justify-center py-4">
-                  <LoadingSpinner size="sm" className="text-gray-400" />
+                  <LoadingSpinner size="sm" className="text-slate-400" />
                 </div>
               )}
             </div>
@@ -658,11 +685,11 @@ export default function HomePage() {
 
       {/* Undo toast */}
       {undoToast && (
-        <div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-gray-900 pl-4 pr-2 py-2.5 text-sm text-white shadow-lg">
+        <div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-slate-900 py-2.5 pl-4 pr-2 text-sm text-white shadow-xl shadow-slate-900/20">
           <span>{undoToast}</span>
           <button
             onClick={handleUndoFeedback}
-            className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold transition-colors hover:bg-white/30"
+            className="cursor-pointer rounded-full bg-white/20 px-3 py-1 text-xs font-semibold transition-colors hover:bg-white/30"
           >
             Undo
           </button>

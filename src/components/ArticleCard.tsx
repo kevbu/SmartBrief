@@ -10,7 +10,7 @@ import BiasBadge from './BiasBadge'
 import FeedbackMenu from './FeedbackMenu'
 import { getEmojiForSource } from '@/lib/news-sources'
 
-const SKIP_VISIBILITY_MS = 3000 // 3s visible without interaction = skip signal
+const SKIP_VISIBILITY_MS = 3000
 
 interface ArticleCardProps {
   article: Article
@@ -41,10 +41,9 @@ export default function ArticleCard({
   const [collapsed, setCollapsed] = useState(false)
   const [reasonVisible, setReasonVisible] = useState(false)
 
-  // Skip signal: fire onSkip if article is visible >3s without being interacted with
   const cardRef = useRef<HTMLElement>(null)
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const interactedRef = useRef(article.isRead) // pre-read articles don't need skip
+  const interactedRef = useRef(article.isRead)
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null)
@@ -61,7 +60,7 @@ export default function ArticleCard({
           skipTimerRef.current = setTimeout(() => {
             if (!interactedRef.current) {
               onSkip(article.id)
-              interactedRef.current = true // only fire once per card
+              interactedRef.current = true
             }
           }, SKIP_VISIBILITY_MS)
         } else {
@@ -80,7 +79,6 @@ export default function ArticleCard({
       observer.disconnect()
       if (skipTimerRef.current !== null) clearTimeout(skipTimerRef.current)
     }
-  // article.id and onSkip are stable across card's lifetime — safe deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [article.id])
 
@@ -123,7 +121,6 @@ export default function ArticleCard({
   }
 
   function handleMouseEnter() {
-    // Skip hover timer on touch devices — pointer handlers own the touch flow
     if (window.matchMedia('(pointer: coarse)').matches) return
     hoverTimerRef.current = setTimeout(() => setReasonVisible(true), 300)
   }
@@ -137,7 +134,6 @@ export default function ArticleCard({
   }
 
   function handleClick() {
-    // Cancel skip timer — user interacted with this card
     interactedRef.current = true
     if (skipTimerRef.current !== null) {
       clearTimeout(skipTimerRef.current)
@@ -176,26 +172,24 @@ export default function ArticleCard({
 
   if (hidden) return null
 
-  // Off-topic collapse: show a single stub row the user can tap to re-expand
   if (collapsed) {
     return (
       <article
-        className="mx-4 mb-1 flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm opacity-50 transition-all active:scale-[0.99] dark:bg-gray-900"
+        className="mx-4 mb-1.5 flex cursor-pointer items-center gap-2 rounded-2xl bg-white px-4 py-3 opacity-40 ring-1 ring-slate-100 transition-all active:scale-[0.99] dark:bg-slate-900 dark:ring-slate-800"
         onClick={handleClick}
         aria-label="Off-topic story — tap to expand"
       >
-        <span className="text-xs text-gray-400">🚫</span>
-        <p className="min-w-0 flex-1 truncate text-xs text-gray-400">{article.title}</p>
-        <span className="flex-shrink-0 text-[10px] text-gray-300">tap to expand</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5 flex-shrink-0 text-slate-400">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+        </svg>
+        <p className="min-w-0 flex-1 truncate text-xs text-slate-400">{article.title}</p>
+        <span className="flex-shrink-0 text-[10px] text-slate-300 dark:text-slate-600">tap to expand</span>
       </article>
     )
   }
 
-  const timeAgo = formatDistanceToNow(new Date(article.publishedAt), {
-    addSuffix: true,
-  })
+  const timeAgo = formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })
 
-  // Depth mode: skim = 1-line description, deep = full AI summary
   const displayText = depthMode === 'deep'
     ? (article.aiSummary || article.description)
     : article.description
@@ -206,8 +200,8 @@ export default function ArticleCard({
     <article
       ref={cardRef}
       className={clsx(
-        'mx-4 mb-3 cursor-pointer rounded-xl bg-white p-4 shadow-sm transition-all active:scale-[0.99] dark:bg-gray-900',
-        isRead && 'opacity-60'
+        'mx-4 mb-2 cursor-pointer rounded-2xl bg-white p-4 ring-1 ring-slate-100 transition-all active:scale-[0.99] hover:ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 dark:hover:ring-slate-700',
+        isRead && 'opacity-55'
       )}
       onClick={handleClick}
       onPointerDown={handlePointerDown}
@@ -220,9 +214,9 @@ export default function ArticleCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {/* Source row */}
-          <div className="mb-1.5 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+          <div className="mb-1.5 flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
             <span>{article.url.startsWith('newsletter://') ? '✉️' : getEmojiForSource(article.source)}</span>
-            <span className="font-medium text-gray-500 dark:text-gray-400">{article.source}</span>
+            <span className="font-medium text-slate-600 dark:text-slate-400">{article.source}</span>
             {article.url.startsWith('newsletter://') && (
               <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-500 dark:bg-indigo-900/40 dark:text-indigo-400">
                 newsletter
@@ -234,32 +228,32 @@ export default function ArticleCard({
           </div>
 
           {/* Title */}
-          <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-snug text-gray-900 dark:text-gray-100">
+          <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">
             {article.title}
           </h3>
 
           {/* Description / AI Summary */}
           {displayText && (
-            <p className={clsx('text-xs leading-relaxed text-gray-500 dark:text-gray-400', textClamp)}>
+            <p className={clsx('text-xs leading-relaxed text-slate-600 dark:text-slate-400', textClamp)}>
               {displayText}
             </p>
           )}
 
-          {/* "Why am I seeing this?" — always-on in deep mode, on-demand in skim */}
+          {/* Why am I seeing this? */}
           {depthMode === 'deep' ? (
-            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-300 dark:text-gray-600">
+            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-600">
               <span>✦</span>
               <span>{article.reason ?? `From ${article.source} · ${article.category} · ${article.sentiment} tone`}</span>
             </p>
           ) : article.reason && reasonVisible ? (
-            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
+            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
               <span>✦</span>
               <span>{shortenReason(article.reason)}</span>
             </p>
           ) : null}
 
           {/* Footer */}
-          <div className="mt-2 flex items-center justify-between">
+          <div className="mt-2.5 flex items-center justify-between">
             <SentimentBadge sentiment={article.sentiment} />
             <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
               <FeedbackMenu
@@ -272,10 +266,10 @@ export default function ArticleCard({
               <button
                 onClick={handleSave}
                 className={clsx(
-                  'flex h-11 w-11 items-center justify-center rounded-full transition-colors',
+                  'flex h-11 w-11 cursor-pointer items-center justify-center rounded-full transition-colors',
                   isSaved
-                    ? 'text-blue-600'
-                    : 'text-gray-300 hover:text-gray-400 dark:text-gray-600 dark:hover:text-gray-500'
+                    ? 'text-blue-500'
+                    : 'text-slate-300 hover:text-slate-400 dark:text-slate-600 dark:hover:text-slate-500'
                 )}
                 aria-label={isSaved ? 'Remove bookmark' : 'Bookmark article'}
               >
@@ -287,20 +281,16 @@ export default function ArticleCard({
                   strokeWidth={1.5}
                   className="h-5 w-5"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
                 </svg>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Image */}
+        {/* Thumbnail */}
         {article.imageUrl && (
-          <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg">
+          <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl">
             <Image
               src={article.imageUrl}
               alt=""
