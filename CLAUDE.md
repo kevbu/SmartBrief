@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow Config
+
+```
+workflow-dir: _workflow
+lint-cmd: npx tsc --noEmit
+test-cmd: node --experimental-vm-modules node_modules/.bin/jest src/lib/importance-score.test.ts
+build-cmd: npm run build
+branch-prefix: feature/
+base-branch: main
+```
+
 ## Commands
 
 ```bash

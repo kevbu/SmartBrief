@@ -27,8 +27,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: '#0f172a',
 }
 
@@ -47,7 +45,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className={`${inter.variable} font-sans`}>
-        <div className="mx-auto min-h-screen max-w-md">
+        <div className="mx-auto min-h-screen max-w-md md:max-w-2xl lg:max-w-4xl">
           <main className="pb-24">{children}</main>
           <BottomNav />
         </div>

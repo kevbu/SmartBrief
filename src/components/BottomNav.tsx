@@ -49,7 +49,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-100 bg-white/95 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-950/95">
-      <div className="mx-auto flex max-w-md items-center justify-around pb-safe">
+      <div className="mx-auto flex max-w-md md:max-w-2xl lg:max-w-4xl items-center justify-around pb-safe">
         {navItems.map((item) => {
           const isActive = pathname === item.href
           return (
