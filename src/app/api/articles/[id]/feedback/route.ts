@@ -14,8 +14,9 @@ const VALID_FEEDBACK: FeedbackType[] = [
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const body = await request.json() as { feedback: string; source?: string }
 
@@ -37,14 +38,14 @@ export async function POST(
 
     // Fetch the article to get its category (topic) for the learning signal
     const article = await db.article.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { category: true },
     })
 
     // Record the feedback — return the ID so the client can undo within 5 s
     const record = await db.articleFeedback.create({
       data: {
-        articleId: params.id,
+        articleId: id,
         feedback: body.feedback,
         source: body.source ?? null,
       },
@@ -54,7 +55,7 @@ export async function POST(
     if (article) {
       await db.feedbackSignal.create({
         data: {
-          articleId: params.id,
+          articleId: id,
           topic: article.category,
           source: body.source ?? null,
           action: body.feedback,
@@ -87,7 +88,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, feedbackId: record.id })
   } catch (err) {
-    console.error(`Error recording feedback for article ${params.id}:`, err)
+    console.error(`Error recording feedback for article ${id}:`, err)
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : 'Unknown error' },
       { status: 500 }
@@ -102,8 +103,9 @@ export async function POST(
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const url = new URL(request.url)
     const feedbackId = url.searchParams.get('feedbackId')
@@ -120,7 +122,7 @@ export async function DELETE(
     }
 
     // Ensure the record belongs to the requested article
-    if (record.articleId !== params.id) {
+    if (record.articleId !== id) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
@@ -162,7 +164,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error(`Error undoing feedback for article ${params.id}:`, err)
+    console.error(`Error undoing feedback for article ${id}:`, err)
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : 'Unknown error' },
       { status: 500 }
