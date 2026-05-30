@@ -57,16 +57,22 @@ export async function GET(request: Request) {
       preferenceWeight: prefsDb?.preferenceWeight ?? 0.3,
     }
 
-    // Load source and topic weights in parallel (applies lazy decay, persists changes)
-    const [weightMap, topicWeightMap] = await Promise.all([
+    // Load everything that doesn't depend on weights/negRatio in parallel
+    const [weightMap, topicWeightMap, negRatio, appState, allArticles, topStoriesDb] = await Promise.all([
       applyDecayAndGetWeightMap(),
       prefsDb?.learningEnabled !== false ? applyDecayAndGetTopicWeightMap() : Promise.resolve({}),
+      effectiveNegativeRatio(preferences.negativeRatio),
+      db.appState.findUnique({ where: { id: 'default' } }),
+      db.article.findMany({
+        where: sinceDate ? { publishedAt: { gte: sinceDate } } : undefined,
+        orderBy: { publishedAt: 'desc' },
+        take: 500,
+      }),
+      db.topStory.findMany({ orderBy: { createdAt: 'desc' } }),
     ])
 
-    // Compute effective negative ratio from TOO_NEGATIVE signals
-    const negRatio = await effectiveNegativeRatio(preferences.negativeRatio)
+    // Adjust ratios based on TOO_NEGATIVE signals
     if (negRatio !== preferences.negativeRatio) {
-      // Redistribute the freed capacity proportionally to positive/neutral
       const freed = preferences.negativeRatio - negRatio
       const posNeutralTotal = preferences.positiveRatio + preferences.neutralRatio || 1
       preferences = {
@@ -76,16 +82,6 @@ export async function GET(request: Request) {
         neutralRatio: preferences.neutralRatio + freed * (preferences.neutralRatio / posNeutralTotal),
       }
     }
-
-    // Get app state
-    const appState = await db.appState.findUnique({ where: { id: 'default' } })
-
-    // Get articles — for catch-up mode, filter by window start
-    const allArticles = await db.article.findMany({
-      where: sinceDate ? { publishedAt: { gte: sinceDate } } : undefined,
-      orderBy: { publishedAt: 'desc' },
-      take: 500,
-    })
 
     let articles: Article[] = allArticles.map((a) => ({
       ...a,
@@ -133,11 +129,6 @@ export async function GET(request: Request) {
 
     // Get balance stats from ALL articles (not filtered by category)
     const balanceStats = computeBalanceStats(articles)
-
-    // Get top stories — all of them, sort by source count client-side
-    const topStoriesDb = await db.topStory.findMany({
-      orderBy: { createdAt: 'desc' },
-    })
 
     const topStories: TopStory[] = topStoriesDb
       .map((ts) => ({
