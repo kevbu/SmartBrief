@@ -24,16 +24,13 @@ export async function analyzeSentiment(
     return articles.map((a) => ({ id: a.id, sentiment: 'neutral', score: 0 }))
   }
 
-  // Process in batches of 20
-  const results: SentimentResult[] = []
-
+  // Build all batches and run them concurrently
+  const batches: Promise<SentimentResult[]>[] = []
   for (let i = 0; i < articles.length; i += 20) {
-    const batch = articles.slice(i, i + 20)
-    const batchResults = await analyzeBatch(client, batch)
-    results.push(...batchResults)
+    batches.push(analyzeBatch(client, articles.slice(i, i + 20)))
   }
-
-  return results
+  const batchResults = await Promise.all(batches)
+  return batchResults.flat()
 }
 
 async function analyzeBatch(
