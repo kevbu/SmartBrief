@@ -2,6 +2,13 @@ import Parser from 'rss-parser'
 import type { RawArticle, CategoryType } from '@/types'
 import { NEWS_SOURCES } from './news-sources'
 
+interface FetchableSource {
+  id: string
+  name: string
+  url: string
+  category: string
+}
+
 const parser = new Parser({
   timeout: 10000,
   headers: {
@@ -62,7 +69,7 @@ function extractImageUrl(item: Record<string, unknown>): string | null {
 }
 
 async function fetchSourceFeed(
-  source: (typeof NEWS_SOURCES)[0]
+  source: FetchableSource
 ): Promise<RawArticle[]> {
   const feed = await parser.parseURL(source.url)
   const items = feed.items.slice(0, 10)
@@ -85,28 +92,32 @@ async function fetchSourceFeed(
     })
 }
 
-export async function fetchAllFeeds(enabledSourceIds?: string[]): Promise<RawArticle[]> {
-  const sources =
+export async function fetchAllFeeds(
+  enabledSourceIds?: string[],
+  customSources?: FetchableSource[]
+): Promise<RawArticle[]> {
+  const builtinSources: FetchableSource[] =
     enabledSourceIds && enabledSourceIds.length > 0
       ? NEWS_SOURCES.filter((s) => enabledSourceIds.includes(s.id))
       : NEWS_SOURCES
 
+  const allSources: FetchableSource[] = [
+    ...builtinSources,
+    ...(customSources ?? []),
+  ]
+
   const results = await Promise.allSettled(
-    sources.map((source) => fetchSourceFeed(source))
+    allSources.map((source) => fetchSourceFeed(source))
   )
 
   const articles: RawArticle[] = []
-
-  const usedSources = enabledSourceIds && enabledSourceIds.length > 0
-    ? NEWS_SOURCES.filter((s) => enabledSourceIds.includes(s.id))
-    : NEWS_SOURCES
 
   results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       articles.push(...result.value)
     } else {
       console.error(
-        `Failed to fetch ${usedSources[index].name}: ${result.reason}`
+        `Failed to fetch ${allSources[index].name}: ${result.reason}`
       )
     }
   })

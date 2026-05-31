@@ -14,9 +14,11 @@ export async function refreshNews(): Promise<{
     ? userPrefs.enabledSources.split(',').filter(Boolean)
     : []
 
+  const customSources = await db.customSource.findMany()
+
   // 1. Fetch all RSS feeds in parallel
   console.log('Fetching RSS feeds...')
-  const rawArticles = await fetchAllFeeds(enabledSourceIds)
+  const rawArticles = await fetchAllFeeds(enabledSourceIds, customSources)
   console.log(`Fetched ${rawArticles.length} raw articles`)
 
   // 2. Deduplicate by URL — insert all, skip existing (unique constraint on url)

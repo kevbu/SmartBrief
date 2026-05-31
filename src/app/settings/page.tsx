@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import type { UserPreferences, MoodPreset } from '@/types'
+import type { UserPreferences, MoodPreset, CustomSource } from '@/types'
 import { NEWS_SOURCES } from '@/lib/news-sources'
 
 interface ImapStatus {
@@ -713,6 +713,52 @@ export default function SettingsPage() {
   const [pushTestResult, setPushTestResult] = useState<{ ok: boolean; message: string } | null>(null)
   const [pushTesting, setPushTesting] = useState(false)
   const [notifHistory, setNotifHistory] = useState<Array<{ id: string; title: string; body: string; sentAt: string }>>([])
+
+  // Custom RSS source state
+  const [customSources, setCustomSources] = useState<CustomSource[]>([])
+  const [customUrl, setCustomUrl] = useState('')
+  const [customName, setCustomName] = useState('')
+  const [customCategory, setCustomCategory] = useState('technology')
+  const [customAdding, setCustomAdding] = useState(false)
+  const [customError, setCustomError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/sources/custom')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.sources) setCustomSources(d.sources) })
+      .catch(() => null)
+  }, [])
+
+  async function addCustomSource() {
+    setCustomAdding(true)
+    setCustomError(null)
+    try {
+      const r = await fetch('/api/sources/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: customName, url: customUrl, category: customCategory }),
+      })
+      const d = await r.json() as { success: boolean; source?: CustomSource; error?: string }
+      if (d.success && d.source) {
+        setCustomSources((prev) => [...prev, d.source!])
+        setCustomUrl('')
+        setCustomName('')
+        setCustomCategory('technology')
+      } else {
+        setCustomError(d.error ?? 'Failed to add source')
+      }
+    } catch {
+      setCustomError('Request failed')
+    } finally {
+      setCustomAdding(false)
+    }
+  }
+
+  async function removeCustomSource(id: string) {
+    setCustomSources((prev) => prev.filter((s) => s.id !== id))
+    await fetch(`/api/sources/custom/${id}`, { method: 'DELETE' }).catch(() => null)
+  }
+
   useEffect(() => {
     fetch('/api/push/history')
       .then((r) => r.ok ? r.json() : null)
@@ -1260,6 +1306,82 @@ export default function SettingsPage() {
               </div>
             </div>
           ))}
+        </section>
+
+        {/* Custom RSS Feeds */}
+        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Custom RSS Feeds</h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">Add your own RSS or Atom feeds. They are included on every refresh.</p>
+
+          {/* Add form */}
+          <div className="space-y-2 mb-4">
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={customUrl}
+                onChange={(e) => setCustomUrl(e.target.value)}
+                placeholder="https://example.com/feed.xml"
+                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-600"
+              />
+              <input
+                type="text"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                placeholder="Source name"
+                className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-600"
+              />
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              >
+                {CATEGORY_OPTIONS.map((c) => (
+                  <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={addCustomSource}
+                disabled={customAdding || !customUrl.trim() || !customName.trim()}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              >
+                {customAdding ? 'Adding…' : 'Add'}
+              </button>
+            </div>
+            {customError && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/50 dark:text-red-400">{customError}</p>
+            )}
+          </div>
+
+          {/* Existing custom sources */}
+          {customSources.length === 0 ? (
+            <p className="text-xs text-gray-400 dark:text-gray-500">No custom feeds added yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {customSources.map((source) => (
+                <div key={source.id} className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="text-base leading-none">{source.logoEmoji}</span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">{source.name}</p>
+                      <p className="truncate text-[11px] font-mono text-gray-400 dark:text-gray-500">{source.url}</p>
+                    </div>
+                    <span className="flex-shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                      {SOURCE_CATEGORY_LABELS[source.category] ?? source.category}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => removeCustomSource(source.id)}
+                    className="ml-3 flex-shrink-0 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
+                    aria-label={`Remove ${source.name}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Source detail popover */}

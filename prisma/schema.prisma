@@ -153,3 +153,13 @@ model FeedbackSignal {
   @@index([source, createdAt])
   @@index([action, createdAt])
 }
+
+model CustomSource {
+  id        String   @id @default(cuid())
+  name      String
+  url       String   @unique
+  category  String   @default("technology")
+  logoEmoji String   @default("📰")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -134,6 +134,15 @@ export interface NewsSource {
   language: 'en' | 'de'
 }
 
+export interface CustomSource {
+  id: string
+  name: string
+  url: string
+  category: string
+  logoEmoji: string
+  createdAt: string
+}
+
 export interface Category {
   id: string
   label: string
