@@ -19,33 +19,25 @@ export async function refreshNews(): Promise<{
   const rawArticles = await fetchAllFeeds(enabledSourceIds)
   console.log(`Fetched ${rawArticles.length} raw articles`)
 
-  // 2. Deduplicate by URL (upsert to DB)
-  let newArticleCount = 0
-  for (const raw of rawArticles) {
-    try {
-      const existing = await db.article.findUnique({ where: { url: raw.url } })
-      if (!existing) {
-        await db.article.create({
-          data: {
-            title: raw.title,
-            description: raw.description,
-            content: raw.content,
-            url: raw.url,
-            imageUrl: raw.imageUrl,
-            publishedAt: raw.publishedAt,
-            source: raw.source,
-            sourceUrl: raw.sourceUrl,
-            category: raw.category,
-            sentiment: 'neutral',
-            sentimentScore: 0,
-          },
-        })
-        newArticleCount++
-      }
-    } catch (err) {
-      console.error(`Error upserting article ${raw.url}:`, err)
-    }
-  }
+  // 2. Deduplicate by URL — insert all, skip existing (unique constraint on url)
+  const countBefore = await db.article.count()
+  await db.article.createMany({
+    data: rawArticles.map((raw) => ({
+      title: raw.title,
+      description: raw.description,
+      content: raw.content,
+      url: raw.url,
+      imageUrl: raw.imageUrl,
+      publishedAt: raw.publishedAt,
+      source: raw.source,
+      sourceUrl: raw.sourceUrl,
+      category: raw.category,
+      sentiment: 'neutral',
+      sentimentScore: 0,
+    })),
+    skipDuplicates: true,
+  })
+  const newArticleCount = (await db.article.count()) - countBefore
 
   console.log(`Added ${newArticleCount} new articles to DB`)
 
@@ -73,10 +65,10 @@ export async function refreshNews(): Promise<{
       }))
     )
 
-    // 5. Update articles in DB with sentiment
-    for (const result of sentimentResults) {
-      try {
-        await db.article.update({
+    // 5. Update articles in DB with sentiment — single transaction
+    await db.$transaction(
+      sentimentResults.map((result) =>
+        db.article.update({
           where: { id: result.id },
           data: {
             sentiment: result.sentiment,
@@ -84,15 +76,37 @@ export async function refreshNews(): Promise<{
             severity: result.severity ?? 'routine',
           },
         })
-      } catch (err) {
-        console.error(`Error updating sentiment for article ${result.id}:`, err)
-      }
-    }
+      )
+    )
 
     console.log(`Updated sentiment for ${sentimentResults.length} articles`)
   }
 
-  // 6. Generate top stories from recent articles (last 12h; fallback to latest 100 if sparse)
+  // 6. Generate top stories — skip entirely if no new articles arrived
+  if (newArticleCount === 0) {
+    console.log('No new articles — skipping top stories generation')
+    const now = new Date()
+    await db.appState.upsert({
+      where: { id: 'default' },
+      create: { id: 'default', lastRefreshed: now },
+      update: { lastRefreshed: now },
+    })
+    await db.userPreferences.upsert({
+      where: { id: 'default' },
+      create: {
+        id: 'default',
+        positiveRatio: 0.4,
+        neutralRatio: 0.4,
+        negativeRatio: 0.2,
+        enabledCategories: 'technology,science,business,world,positive',
+        refreshIntervalMins: 60,
+      },
+      update: {},
+    })
+    return { articleCount: await db.article.count(), lastRefreshed: now }
+  }
+
+  // Generate top stories from recent articles (last 12h; fallback to latest 100 if sparse)
   const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000)
   let recentArticles = await db.article.findMany({
     where: { publishedAt: { gte: twelveHoursAgo } },
@@ -120,29 +134,21 @@ export async function refreshNews(): Promise<{
   console.log('Generating top stories...')
   const topStoryData = await generateTopStories(articles)
 
-  // 7. Delete old top stories and store new ones
+  // 7. Delete old top stories and store new ones in a single batch
   if (topStoryData.length > 0) {
     await db.topStory.deleteMany({})
-
-    for (const ts of topStoryData) {
-      try {
-        await db.topStory.create({
-          data: {
-            title: ts.title,
-            summary: ts.summary,
-            category: ts.category,
-            articleIds: JSON.stringify(ts.articleIds),
-            sources: JSON.stringify(ts.sources),
-            sentiment: ts.sentiment,
-            bullets: JSON.stringify(ts.bullets ?? []),
-            clusterArticles: JSON.stringify(ts.clusterArticles ?? []),
-          },
-        })
-      } catch (err) {
-        console.error('Error creating top story:', err)
-      }
-    }
-
+    await db.topStory.createMany({
+      data: topStoryData.map((ts) => ({
+        title: ts.title,
+        summary: ts.summary,
+        category: ts.category,
+        articleIds: JSON.stringify(ts.articleIds),
+        sources: JSON.stringify(ts.sources),
+        sentiment: ts.sentiment,
+        bullets: JSON.stringify(ts.bullets ?? []),
+        clusterArticles: JSON.stringify(ts.clusterArticles ?? []),
+      })),
+    })
     console.log(`Created ${topStoryData.length} top stories`)
   }
 
