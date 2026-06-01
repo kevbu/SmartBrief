@@ -140,6 +140,8 @@ Return ONLY a JSON array with this format (no other text):
 
 Each bullet must be a concrete, specific fact (not a vague summary). Max 5 bullets per cluster.
 
+Language rule: Examine the article titles for each cluster. If the majority are in German, write that cluster's title, summary, and bullets entirely in German. If the majority are in English, or if it's a tie, write in English.
+
 Articles:
 ${articleList}`
 
