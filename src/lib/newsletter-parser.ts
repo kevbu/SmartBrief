@@ -27,6 +27,9 @@ export interface ParsedNewsletter {
 /** Strip HTML tags and collapse whitespace, preserving paragraph breaks. */
 function htmlToText(html: string): string {
   return html
+    // Remove <style> and <script> blocks entirely (content + tags)
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
     // Replace block-level elements with double newline
     .replace(/<\/(p|div|li|blockquote|h[1-6]|tr)>/gi, '\n\n')
     // Replace <br> with newline
