@@ -21,10 +21,15 @@ export async function refreshNews(): Promise<{
   const rawArticles = await fetchAllFeeds(enabledSourceIds, customSources)
   console.log(`Fetched ${rawArticles.length} raw articles`)
 
-  // 2. Deduplicate by URL — insert all, skip existing (unique constraint on url)
-  const countBefore = await db.article.count()
-  await db.article.createMany({
-    data: rawArticles.map((raw) => ({
+  // 2. Deduplicate by URL — query existing URLs in this batch, then insert only new ones
+  const incomingUrls = rawArticles.map((r) => r.url)
+  const existingUrls = new Set(
+    (await db.article.findMany({ where: { url: { in: incomingUrls } }, select: { url: true } }))
+      .map((a) => a.url)
+  )
+  const newArticleData = rawArticles
+    .filter((r) => !existingUrls.has(r.url))
+    .map((raw) => ({
       title: raw.title,
       description: raw.description,
       content: raw.content,
@@ -36,10 +41,11 @@ export async function refreshNews(): Promise<{
       category: raw.category,
       sentiment: 'neutral',
       sentimentScore: 0,
-    })),
-    skipDuplicates: true,
-  })
-  const newArticleCount = (await db.article.count()) - countBefore
+    }))
+  if (newArticleData.length > 0) {
+    await db.article.createMany({ data: newArticleData })
+  }
+  const newArticleCount = newArticleData.length
 
   console.log(`Added ${newArticleCount} new articles to DB`)
 
