@@ -64,7 +64,10 @@ export async function GET(request: Request) {
       effectiveNegativeRatio(preferences.negativeRatio),
       db.appState.findUnique({ where: { id: 'default' } }),
       db.article.findMany({
-        where: sinceDate ? { publishedAt: { gte: sinceDate } } : undefined,
+        where: {
+          url: { not: { startsWith: 'newsletter://' } },
+          ...(sinceDate ? { publishedAt: { gte: sinceDate } } : {}),
+        },
         orderBy: { publishedAt: 'desc' },
         take: 500,
       }),

@@ -8,6 +8,7 @@ import ArticleDetail from '@/components/ArticleDetail'
 import BalanceMeter from '@/components/BalanceMeter'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import CatchUpBanner from '@/components/CatchUpBanner'
+import NewsletterCard from '@/components/NewsletterCard'
 import Link from 'next/link'
 import type {
   Article,
@@ -60,6 +61,17 @@ export default function HomePage() {
   const [hasApiKey, setHasApiKey] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null)
+
+  // Newsletter tab
+  const [activeTab, setActiveTab] = useState<'feed' | 'newsletters'>('feed')
+  const [newsletters, setNewsletters] = useState<Article[]>([])
+  const [newsletterUnreadCount, setNewsletterUnreadCount] = useState(0)
+  const [newsletterTotal, setNewsletterTotal] = useState(0)
+  const [newsletterPage, setNewsletterPage] = useState(1)
+  const [isNewsletterLoading, setIsNewsletterLoading] = useState(false)
+  const [isPollLoading, setIsPollLoading] = useState(false)
+  const [expandedNewsletterId, setExpandedNewsletterId] = useState<string | null>(null)
+  const [newsletterError, setNewsletterError] = useState<string | null>(null)
 
   // Catch-up mode
   const [catchUpMode, setCatchUpMode] = useState(false)
@@ -145,6 +157,80 @@ export default function HomePage() {
       console.error('Mood change error:', err)
     }
   }, [fetchNews, activeCategory])
+
+  const fetchNewsletters = useCallback(async (page = 1, append = false) => {
+    try {
+      setIsNewsletterLoading(true)
+      setNewsletterError(null)
+      const res = await fetch(`/api/newsletters?page=${page}`)
+      if (!res.ok) throw new Error('Failed to fetch newsletters')
+      const data = await res.json()
+      setNewsletters((prev) => append ? [...prev, ...data.newsletters] : data.newsletters)
+      setNewsletterUnreadCount(data.unreadCount)
+      setNewsletterTotal(data.total)
+      setNewsletterPage(page)
+    } catch (err) {
+      setNewsletterError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setIsNewsletterLoading(false)
+    }
+  }, [])
+
+  const handleNewsletterExpand = useCallback(async (id: string) => {
+    setExpandedNewsletterId(id)
+    const target = newsletters.find((n) => n.id === id)
+    if (!target || target.isRead) return
+
+    // Optimistic update
+    setNewsletters((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n))
+    setNewsletterUnreadCount((c) => Math.max(0, c - 1))
+
+    try {
+      const res = await fetch(`/api/newsletters/${id}/read`, { method: 'PATCH' })
+      if (!res.ok) throw new Error('Failed')
+    } catch {
+      // Rollback
+      setNewsletters((prev) => prev.map((n) => n.id === id ? { ...n, isRead: false } : n))
+      setNewsletterUnreadCount((c) => c + 1)
+    }
+  }, [newsletters])
+
+  const handleNewsletterCollapse = useCallback(() => {
+    setExpandedNewsletterId(null)
+  }, [])
+
+  const handleMarkAllRead = useCallback(async () => {
+    const snapshot = newsletters.map((n) => ({ ...n }))
+    setNewsletters((prev) => prev.map((n) => ({ ...n, isRead: true })))
+    setNewsletterUnreadCount(0)
+    try {
+      const res = await fetch('/api/newsletters/read-all', { method: 'POST' })
+      if (!res.ok) throw new Error('Failed')
+    } catch {
+      setNewsletters(snapshot)
+      setNewsletterUnreadCount(snapshot.filter((n) => !n.isRead).length)
+    }
+  }, [newsletters])
+
+  const handlePollNow = useCallback(async () => {
+    try {
+      setIsPollLoading(true)
+      const res = await fetch('/api/ingest/newsletter/imap', { method: 'POST' })
+      if (!res.ok) throw new Error('Failed')
+      await fetchNewsletters(1)
+    } catch {
+      // Silent — button returns to idle
+    } finally {
+      setIsPollLoading(false)
+    }
+  }, [fetchNewsletters])
+
+  useEffect(() => {
+    if (activeTab === 'newsletters' && newsletters.length === 0 && !isNewsletterLoading) {
+      void fetchNewsletters(1)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab])
 
   // Initial load
   useEffect(() => {
@@ -291,7 +377,128 @@ export default function HomePage() {
         </div>
       )}
 
-      {isLoading ? (
+      {/* Tab switcher: Feed / Newsletters */}
+      <div className="flex border-b border-slate-200 px-4 dark:border-slate-800">
+        {(['feed', 'newsletters'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={[
+              'relative mr-6 pb-2 pt-3 text-sm font-medium transition-colors',
+              activeTab === tab
+                ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
+            ].join(' ')}
+          >
+            {tab === 'feed' ? 'Feed' : (
+              <span className="flex items-center gap-1.5">
+                Newsletters
+                {newsletterUnreadCount > 0 && (
+                  <span className="rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {newsletterUnreadCount > 99 ? '99+' : newsletterUnreadCount}
+                  </span>
+                )}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Newsletter panel */}
+      {activeTab === 'newsletters' && (
+        <div className="flex flex-col">
+          {/* Action bar */}
+          <div className="flex items-center justify-end gap-2 px-4 py-2">
+            <button
+              onClick={handlePollNow}
+              disabled={isPollLoading}
+              className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              {isPollLoading ? (
+                <LoadingSpinner size="xs" className="text-slate-500" />
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                  <path d="M16 16h5v5" />
+                </svg>
+              )}
+              Poll now
+            </button>
+            <button
+              onClick={handleMarkAllRead}
+              disabled={newsletterUnreadCount === 0}
+              className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-40 disabled:pointer-events-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                <path d="M18 6 7 17l-5-5" />
+                <path d="m22 10-7.5 7.5L13 16" />
+              </svg>
+              Mark all read
+            </button>
+          </div>
+
+          {/* List states */}
+          {isNewsletterLoading && newsletters.length === 0 ? (
+            <div className="pt-2">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          ) : newsletterError ? (
+            <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-red-800/40 bg-red-950/30 px-4 py-3">
+              <p className="text-xs text-red-400">{newsletterError}</p>
+              <button onClick={() => fetchNewsletters(1)} className="text-xs text-red-300 underline underline-offset-2 hover:text-red-200">
+                Retry
+              </button>
+            </div>
+          ) : newsletters.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 px-8 py-16 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-slate-400 dark:text-slate-500">
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No newsletters yet</p>
+              <p className="max-w-[220px] text-xs text-slate-400 dark:text-slate-500">
+                Newsletters you receive will appear here. Configure IMAP in Settings.
+              </p>
+              <button
+                onClick={handlePollNow}
+                disabled={isPollLoading}
+                className="mt-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                Poll now
+              </button>
+            </div>
+          ) : (
+            <>
+              {newsletters.map((n) => (
+                <NewsletterCard
+                  key={n.id}
+                  article={n}
+                  isExpanded={expandedNewsletterId === n.id}
+                  onExpand={handleNewsletterExpand}
+                  onCollapse={handleNewsletterCollapse}
+                />
+              ))}
+              {newsletters.length < newsletterTotal && (
+                <button
+                  onClick={() => fetchNewsletters(newsletterPage + 1, true)}
+                  disabled={isNewsletterLoading}
+                  className="mx-4 my-4 rounded-xl border border-slate-200 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50"
+                >
+                  Load more
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'feed' && (isLoading ? (
         <div className="pt-4">
           <SkeletonCard />
           <SkeletonCard />
@@ -466,7 +673,7 @@ export default function HomePage() {
             </div>
           )}
         </>
-      )}
+      ))}
 
       {/* Article Detail Modal */}
       {selectedItem && (
