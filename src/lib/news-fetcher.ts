@@ -10,7 +10,7 @@ interface FetchableSource {
 }
 
 const parser = new Parser({
-  timeout: 10000,
+  timeout: 5000,
   headers: {
     'User-Agent': 'SmartBrief/1.0 RSS Reader',
     Accept: 'application/rss+xml, application/xml, text/xml, */*',
