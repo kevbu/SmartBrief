@@ -1,5 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { Article, SentimentResult, SentimentType, TopStory } from '@/types'
+import { NEWS_SOURCES } from './news-sources'
+
+const sourceLangMap: Record<string, string> = Object.fromEntries(
+  NEWS_SOURCES.map((s) => [s.name, s.language])
+)
 
 export type SeverityLevel = 'routine' | 'notable' | 'significant' | 'major' | 'critical'
 
@@ -117,10 +122,10 @@ export async function generateTopStories(
   }
 
   const articleList = recentArticles
-    .map(
-      (a, idx) =>
-        `${idx + 1}. [${a.source}] [${a.category}] ${a.title}\n   ${a.description?.slice(0, 200) || ''}`
-    )
+    .map((a, idx) => {
+      const lang = sourceLangMap[a.source] ?? 'en'
+      return `${idx + 1}. [${a.source}] [${lang}] [${a.category}] ${a.title}\n   ${a.description?.slice(0, 200) || ''}`
+    })
     .join('\n')
 
   const prompt = `Based on these recent news articles, identify up to 20 top story clusters where multiple sources are covering similar topics. For each cluster, write a brief summary and 2-5 bullet points.
@@ -140,7 +145,7 @@ Return ONLY a JSON array with this format (no other text):
 
 Each bullet must be a concrete, specific fact (not a vague summary). Max 5 bullets per cluster.
 
-Language rule: Examine the article titles for each cluster. If the majority are in German, write that cluster's title, summary, and bullets entirely in German. If the majority are in English, or if it's a tie, write in English.
+Language rule: Each article is tagged [de] or [en]. For each cluster, count the [de] and [en] tags among its articleIndices. If [de] articles outnumber [en] articles, write that cluster's title, summary, and bullets entirely in German. Otherwise write in English.
 
 Articles:
 ${articleList}`
