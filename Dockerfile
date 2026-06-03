@@ -20,7 +20,6 @@ COPY --from=builder /app/prisma ./prisma
 
 # Prisma CLI (devDep — not traced into standalone node_modules)
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 # Generated Prisma client + query engine binaries
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
@@ -29,4 +28,4 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 EXPOSE 3000
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
-CMD ["sh", "-c", "node_modules/.bin/prisma db push && node server.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js db push && node server.js"]
