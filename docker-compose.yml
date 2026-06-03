@@ -1,6 +1,6 @@
 services:
   smartbrief:
-    image: ghcr.io/kevbu/smartbrief:latest
+    image: ghcr.io/kevbu/smartbrief:${IMAGE_TAG:-latest}
     # No ports exposed — Nginx Proxy Manager routes traffic via the shared Docker network.
     # For local-only access without NPM, uncomment the line below:
     # ports:
