@@ -32,7 +32,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Type check
-        run: npx tsc --noEmit
+        run: npx prisma generate && npx tsc --noEmit
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
