@@ -29,6 +29,11 @@ export default function ArticleDetail({
     setBullets([])
     if (!article && !topStory) return
 
+    if (topStory && topStory.bullets && topStory.bullets.length > 0) {
+      setBullets(topStory.bullets)
+      return
+    }
+
     async function fetchBullets() {
       setLoading(true)
       try {
