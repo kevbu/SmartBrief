@@ -265,24 +265,6 @@ export default function HomePage() {
           setLastRefreshed(data.lastRefreshed)
           setHasApiKey(data.hasApiKey)
 
-          const intervalMins = data.preferences?.refreshIntervalMins ?? 60
-          const shouldRefresh =
-            !data.lastRefreshed ||
-            new Date().getTime() - new Date(data.lastRefreshed).getTime() >
-              intervalMins * 60 * 1000
-
-          if (shouldRefresh || data.articles.length === 0) {
-            setIsLoading(false)
-            setIsRefreshing(true)
-            try {
-              await fetch('/api/news/refresh', { method: 'POST' })
-            } catch (e) {
-              console.error('Auto-refresh failed:', e)
-            } finally {
-              setIsRefreshing(false)
-            }
-          }
-
           if (isCatchUp && sinceTs) {
             await fetchNews(activeCategory, 'catchup', sinceTs)
           } else {
