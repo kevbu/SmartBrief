@@ -87,15 +87,6 @@ export const NEWS_SOURCES: NewsSource[] = [
     bias: 'center-right',
     language: 'en',
   },
-  {
-    id: 'investopedia',
-    name: 'Investopedia',
-    url: 'https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_headline',
-    category: 'business',
-    logoEmoji: '💰',
-    bias: 'center',
-    language: 'en',
-  },
 
   // World & Politics
   {
@@ -133,15 +124,6 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.goodnewsnetwork.org/feed/',
     category: 'positive',
     logoEmoji: '✨',
-    bias: 'center',
-    language: 'en',
-  },
-  {
-    id: 'positive-news',
-    name: 'Positive News',
-    url: 'https://www.positive.news/feed/',
-    category: 'positive',
-    logoEmoji: '🌟',
     bias: 'center',
     language: 'en',
   },
