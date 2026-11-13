@@ -13,10 +13,66 @@ export interface SeverityResult {
   severity: SeverityLevel
 }
 
-function getClient(): Anthropic | null {
+export interface CompletionRequest {
+  model: string
+  maxTokens: number
+  system?: string
+  prompt: string
+}
+
+export type Completer = (req: CompletionRequest) => Promise<string>
+
+function useLocalSdk(): boolean {
+  return process.env.CLAUDE_USE_LOCAL_SDK === 'true'
+}
+
+// Local mode: route calls through the Claude Agent SDK, which uses the
+// machine's logged-in Claude Code CLI instead of an API key.
+async function completeWithLocalSdk(req: CompletionRequest): Promise<string> {
+  const { query } = await import('@anthropic-ai/claude-agent-sdk')
+  let result = ''
+  for await (const message of query({
+    prompt: req.prompt,
+    options: {
+      model: req.model,
+      systemPrompt: req.system,
+      tools: [],
+      settingSources: [],
+      maxTurns: 1,
+      persistSession: false,
+    },
+  })) {
+    if (message.type === 'result') {
+      if (message.subtype !== 'success') {
+        throw new Error(`Claude Agent SDK error: ${message.subtype}`)
+      }
+      result = message.result
+    }
+  }
+  return result
+}
+
+export function isAiAvailable(): boolean {
+  return !!process.env.ANTHROPIC_API_KEY || useLocalSdk()
+}
+
+export function getClient(): Completer | null {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) return null
-  return new Anthropic({ apiKey })
+  if (apiKey && !useLocalSdk()) {
+    const anthropic = new Anthropic({ apiKey })
+    return async (req) => {
+      const response = await anthropic.messages.create({
+        model: req.model,
+        max_tokens: req.maxTokens,
+        system: req.system,
+        messages: [{ role: 'user', content: req.prompt }],
+      })
+      const block = response.content[0]
+      return block?.type === 'text' ? block.text : ''
+    }
+  }
+  if (useLocalSdk()) return completeWithLocalSdk
+  return null
 }
 
 export async function analyzeSentiment(
@@ -39,7 +95,7 @@ export async function analyzeSentiment(
 }
 
 async function analyzeBatch(
-  client: Anthropic,
+  client: Completer,
   articles: Pick<Article, 'id' | 'title' | 'description'>[]
 ): Promise<SentimentResult[]> {
   const articleList = articles
@@ -62,16 +118,13 @@ Articles:
 ${articleList}`
 
   try {
-    const response = await client.messages.create({
+    const text = await client({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
+      maxTokens: 2048,
       system:
         'You are a news sentiment analyzer. Analyze news articles and return balanced, nuanced sentiment scores. Positive news includes discoveries, solutions, progress, achievements. Negative news includes disasters, conflicts, failures, crises. Be calibrated - most news is neutral. Return only valid JSON arrays.',
-      messages: [{ role: 'user', content: prompt }],
+      prompt,
     })
-
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text : ''
 
     // Extract JSON from response
     const jsonMatch = text.match(/\[[\s\S]*\]/)
@@ -151,16 +204,13 @@ Articles:
 ${articleList}`
 
   try {
-    const response = await client.messages.create({
+    const text = await client({
       model: 'claude-sonnet-4-6',
-      max_tokens: 6000,
+      maxTokens: 6000,
       system:
         "You are a balanced news editor creating briefings. Synthesize news into clear, balanced summaries that inform without inducing anxiety. When reporting negative developments, include context, scale, and any positive aspects. Always end summaries constructively. Return only valid JSON.",
-      messages: [{ role: 'user', content: prompt }],
+      prompt,
     })
-
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text : ''
 
     const jsonMatch = text.match(/\[[\s\S]*\]/)
     if (!jsonMatch) {
