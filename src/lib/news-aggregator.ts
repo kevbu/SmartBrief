@@ -59,6 +59,12 @@ export async function refreshNews(): Promise<{
 
   console.log(`Added ${newArticleCount} new articles to DB`)
 
+  // 3a. One-time backfill: before the empty-severity marker, failed or key-less
+  //     analyses were stored as neutral / score 0 / 'routine'. Reset those to
+  //     unanalyzed once so they get a real analysis. Runs only once because a
+  //     genuine neutral result can look identical.
+  await backfillLegacySeverity()
+
   // 3. Find articles without sentiment analysis. Every successful analysis sets
   //    a severity, so the empty default marks "not analyzed yet". (Using
   //    neutral + score 0 re-analyzed genuinely neutral articles on every refresh.)
@@ -212,4 +218,19 @@ export async function ensureDefaultPreferences(): Promise<void> {
   void runSignalCleanupIfNeeded().catch((e) =>
     console.error('[ensureDefaultPreferences] signal cleanup failed:', e)
   )
+}
+
+async function backfillLegacySeverity(): Promise<void> {
+  const state = await db.appState.findUnique({ where: { id: 'default' } })
+  if (state?.severityBackfillDone) return
+  const { count } = await db.article.updateMany({
+    where: { sentiment: 'neutral', sentimentScore: 0, severity: 'routine' },
+    data: { severity: '' },
+  })
+  await db.appState.upsert({
+    where: { id: 'default' },
+    create: { id: 'default', severityBackfillDone: true },
+    update: { severityBackfillDone: true },
+  })
+  if (count > 0) console.log(`Backfill: reset ${count} legacy fallback articles to unanalyzed`)
 }
