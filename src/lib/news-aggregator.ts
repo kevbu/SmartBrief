@@ -8,6 +8,9 @@ export async function refreshNews(): Promise<{
   articleCount: number
   lastRefreshed: Date
 }> {
+  const t0 = Date.now()
+  const elapsed = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`
+
   // 0. Get user preferences to check enabled sources
   const userPrefs = await db.userPreferences.findUnique({ where: { id: 'default' } })
   const enabledSourceIds = userPrefs?.enabledSources
@@ -19,7 +22,7 @@ export async function refreshNews(): Promise<{
   // 1. Fetch all RSS feeds in parallel
   console.log('Fetching RSS feeds...')
   const rawArticles = await fetchAllFeeds(enabledSourceIds, customSources)
-  console.log(`Fetched ${rawArticles.length} raw articles`)
+  console.log(`Fetched ${rawArticles.length} raw articles [${elapsed()}]`)
 
   // 2. Deduplicate by URL — query existing URLs in this batch, then insert only new ones
   const incomingUrls = rawArticles.map((r) => r.url)
@@ -27,8 +30,15 @@ export async function refreshNews(): Promise<{
     (await db.article.findMany({ where: { url: { in: incomingUrls } }, select: { url: true } }))
       .map((a) => a.url)
   )
+  // Also dedup within the batch: the same URL can appear in several feeds,
+  // which would fail createMany on the unique url constraint.
+  const seenUrls = new Set<string>()
   const newArticleData = rawArticles
-    .filter((r) => !existingUrls.has(r.url))
+    .filter((r) => {
+      if (existingUrls.has(r.url) || seenUrls.has(r.url)) return false
+      seenUrls.add(r.url)
+      return true
+    })
     .map((raw) => ({
       title: raw.title,
       description: raw.description,
@@ -49,14 +59,11 @@ export async function refreshNews(): Promise<{
 
   console.log(`Added ${newArticleCount} new articles to DB`)
 
-  // 3. Find articles without sentiment analysis (neutral with score=0 is our "unanalyzed" marker)
+  // 3. Find articles without sentiment analysis. Every successful analysis sets
+  //    a severity, so the empty default marks "not analyzed yet". (Using
+  //    neutral + score 0 re-analyzed genuinely neutral articles on every refresh.)
   const unanalyzed = await db.article.findMany({
-    where: {
-      AND: [
-        { sentiment: 'neutral' },
-        { sentimentScore: 0 },
-      ],
-    },
+    where: { severity: '' },
     take: 200,
     orderBy: { fetchedAt: 'desc' },
   })
@@ -87,7 +94,7 @@ export async function refreshNews(): Promise<{
       )
     )
 
-    console.log(`Updated sentiment for ${sentimentResults.length} articles`)
+    console.log(`Updated sentiment for ${sentimentResults.length} articles [${elapsed()}]`)
   }
 
   // 6. Generate top stories — skip entirely if no new articles arrived
@@ -141,6 +148,7 @@ export async function refreshNews(): Promise<{
 
   console.log('Generating top stories...')
   const topStoryData = await generateTopStories(articles)
+  console.log(`Generated ${topStoryData.length} top stories [${elapsed()}]`)
 
   // 7. Delete old top stories and store new ones in a single batch
   if (topStoryData.length > 0) {

@@ -18,6 +18,8 @@ export interface CompletionRequest {
   maxTokens: number
   system?: string
   prompt: string
+  /** JSON schema for one array item. Local mode enforces it via structured output. */
+  itemSchema?: Record<string, unknown>
 }
 
 export type Completer = (req: CompletionRequest) => Promise<string>
@@ -26,28 +28,64 @@ function useLocalSdk(): boolean {
   return process.env.CLAUDE_USE_LOCAL_SDK === 'true'
 }
 
+const LOCAL_SDK_TIMEOUT_MS = 5 * 60 * 1000
+
 // Local mode: route calls through the Claude Agent SDK, which uses the
 // machine's logged-in Claude Code CLI instead of an API key.
 async function completeWithLocalSdk(req: CompletionRequest): Promise<string> {
   const { query } = await import('@anthropic-ai/claude-agent-sdk')
+  const started = Date.now()
+  // Without a timeout a stalled CLI process blocks the whole refresh.
+  const abortController = new AbortController()
+  const timeout = setTimeout(() => abortController.abort(), LOCAL_SDK_TIMEOUT_MS)
   let result = ''
-  for await (const message of query({
-    prompt: req.prompt,
-    options: {
-      model: req.model,
-      systemPrompt: req.system,
-      tools: [],
-      settingSources: [],
-      maxTurns: 1,
-      persistSession: false,
-    },
-  })) {
-    if (message.type === 'result') {
-      if (message.subtype !== 'success') {
-        throw new Error(`Claude Agent SDK error: ${message.subtype}`)
+  try {
+    for await (const message of query({
+      prompt: req.prompt,
+      options: {
+        abortController,
+        env: {
+          ...(process.env as Record<string, string>),
+          CLAUDE_CODE_MAX_OUTPUT_TOKENS: String(req.maxTokens),
+          CLAUDE_AGENT_SDK_CLIENT_APP: 'smartbrief',
+        },
+        model: req.model,
+        systemPrompt: req.system,
+        // Claude Code enables extended thinking by default. These are single-shot
+        // classification/summarization calls, so thinking only adds latency.
+        thinking: { type: 'disabled' },
+        tools: [],
+        settingSources: [],
+        // Structured output may need a retry turn if validation fails.
+        maxTurns: req.itemSchema ? 3 : 1,
+        persistSession: false,
+        // Structured output guarantees valid JSON (free-text JSON broke on
+        // unescaped quotes in German summaries).
+        outputFormat: req.itemSchema
+          ? {
+              type: 'json_schema',
+              schema: {
+                type: 'object',
+                properties: { items: { type: 'array', items: req.itemSchema } },
+                required: ['items'],
+              },
+            }
+          : undefined,
+      },
+    })) {
+      if (message.type === 'result') {
+        if (message.subtype !== 'success') {
+          throw new Error(`Claude Agent SDK error: ${message.subtype}`)
+        }
+        const structured = message.structured_output as { items?: unknown[] } | undefined
+        result = structured?.items ? JSON.stringify(structured.items) : message.result
+        console.log(
+          `[claude-local] ${req.model}: ${((Date.now() - started) / 1000).toFixed(1)}s, ${message.usage.output_tokens} output tokens`
+        )
       }
-      result = message.result
     }
+  } finally {
+    clearTimeout(timeout)
   }
   return result
 }
@@ -75,14 +113,39 @@ export function getClient(): Completer | null {
   return null
 }
 
+const SENTIMENT_ITEM_SCHEMA = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    sentiment: { type: 'string', enum: ['positive', 'neutral', 'negative'] },
+    score: { type: 'number' },
+    severity: { type: 'string', enum: ['routine', 'notable', 'significant', 'major', 'critical'] },
+  },
+  required: ['id', 'sentiment', 'score', 'severity'],
+}
+
+const TOP_STORY_ITEM_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    summary: { type: 'string' },
+    bullets: { type: 'array', items: { type: 'string' } },
+    category: { type: 'string' },
+    articleIndices: { type: 'array', items: { type: 'integer' } },
+    sources: { type: 'array', items: { type: 'string' } },
+    sentiment: { type: 'string', enum: ['positive', 'neutral', 'negative'] },
+  },
+  required: ['title', 'summary', 'bullets', 'category', 'articleIndices', 'sources', 'sentiment'],
+}
+
 export async function analyzeSentiment(
   articles: Pick<Article, 'id' | 'title' | 'description'>[]
 ): Promise<SentimentResult[]> {
   const client = getClient()
 
   if (!client) {
-    // Graceful degradation: return neutral for all
-    return articles.map((a) => ({ id: a.id, sentiment: 'neutral', score: 0 }))
+    // Graceful degradation: no results, articles keep their neutral default
+    return []
   }
 
   // Build all batches and run them concurrently
@@ -121,6 +184,7 @@ ${articleList}`
     const text = await client({
       model: 'claude-haiku-4-5-20251001',
       maxTokens: 2048,
+      itemSchema: SENTIMENT_ITEM_SCHEMA,
       system:
         'You are a news sentiment analyzer. Analyze news articles and return balanced, nuanced sentiment scores. Positive news includes discoveries, solutions, progress, achievements. Negative news includes disasters, conflicts, failures, crises. Be calibrated - most news is neutral. Return only valid JSON arrays.',
       prompt,
@@ -130,7 +194,7 @@ ${articleList}`
     const jsonMatch = text.match(/\[[\s\S]*\]/)
     if (!jsonMatch) {
       console.error('No JSON array found in sentiment response')
-      return articles.map((a) => ({ id: a.id, sentiment: 'neutral', score: 0 }))
+      return []
     }
 
     const parsed = JSON.parse(jsonMatch[0]) as Array<{
@@ -152,7 +216,7 @@ ${articleList}`
     }))
   } catch (err) {
     console.error('Sentiment analysis error:', err)
-    return articles.map((a) => ({ id: a.id, sentiment: 'neutral', score: 0, severity: 'routine' as SeverityLevel }))
+    return []
   }
 }
 
@@ -206,7 +270,8 @@ ${articleList}`
   try {
     const text = await client({
       model: 'claude-sonnet-4-6',
-      maxTokens: 6000,
+      maxTokens: 8000,
+      itemSchema: TOP_STORY_ITEM_SCHEMA,
       system:
         "You are a balanced news editor creating briefings. Synthesize news into clear, balanced summaries that inform without inducing anxiety. When reporting negative developments, include context, scale, and any positive aspects. Always end summaries constructively. Return only valid JSON.",
       prompt,
