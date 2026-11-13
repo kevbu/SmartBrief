@@ -11,7 +11,7 @@ const nextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['@prisma/client', 'prisma'],
+  serverExternalPackages: ['@prisma/client', 'prisma', '@anthropic-ai/claude-agent-sdk'],
 }
 
 export default withBundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })(nextConfig)

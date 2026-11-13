@@ -81,6 +81,8 @@ model AppState {
   lastBreakingCheck DateTime?
   vapidPublic       String?
   vapidPrivate      String?
+  // One-time migration flag: legacy fallback rows (neutral/0/routine) reset to unanalyzed
+  severityBackfillDone Boolean @default(false)
   updatedAt         DateTime  @updatedAt
 }
 

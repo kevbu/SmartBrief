@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import Anthropic from '@anthropic-ai/sdk'
+import { getClient } from '@/lib/claude-analyzer'
 
 export async function GET(
   request: NextRequest,
@@ -22,9 +22,9 @@ export async function GET(
       } catch {
         bullets = []
       }
-    } else if (process.env.ANTHROPIC_API_KEY) {
+    } else if (getClient()) {
       try {
-        const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+        const client = getClient()!
         const content = [
           article.title,
           article.description,
@@ -33,19 +33,11 @@ export async function GET(
           .filter(Boolean)
           .join('\n\n')
 
-        const response = await client.messages.create({
+        const text = await client({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 512,
-          messages: [
-            {
-              role: 'user',
-              content: `Generate exactly 3-5 concise bullet points summarizing this news article. Each bullet should be one sentence, factual, and informative. Return ONLY a JSON array of strings, no other text.\n\n${content}`,
-            },
-          ],
+          maxTokens: 512,
+          prompt: `Generate exactly 3-5 concise bullet points summarizing this news article. Each bullet should be one sentence, factual, and informative. Return ONLY a JSON array of strings, no other text.\n\n${content}`,
         })
-
-        const text =
-          response.content[0].type === 'text' ? response.content[0].text : ''
         const jsonMatch = text.match(/\[[\s\S]*\]/)
         if (jsonMatch) {
           bullets = JSON.parse(jsonMatch[0]) as string[]

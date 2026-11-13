@@ -5,6 +5,7 @@ import { ensureDefaultPreferences } from '@/lib/news-aggregator'
 import { applyDecayAndGetWeightMap, effectiveNegativeRatio } from '@/lib/source-weights'
 import { applyDecayAndGetTopicWeightMap } from '@/lib/topic-weights'
 import { scoreByImportance } from '@/lib/importance-score'
+import { isAiAvailable } from '@/lib/claude-analyzer'
 import type { Article, TopStory, UserPreferences, NewsApiResponse, MoodPreset, DepthMode } from '@/types'
 
 export async function GET(request: Request) {
@@ -156,7 +157,7 @@ export async function GET(request: Request) {
       }))
       .sort((a, b) => b.sources.length - a.sources.length)
 
-    const hasApiKey = !!process.env.ANTHROPIC_API_KEY
+    const hasApiKey = isAiAvailable()
 
     const response: NewsApiResponse = {
       articles: paginatedArticles,
