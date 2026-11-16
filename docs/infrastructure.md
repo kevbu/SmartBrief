@@ -77,7 +77,6 @@ All push infrastructure is built. VAPID keys are auto-generated on first run and
 | Context | Version |
 |---------|---------|
 | Dockerfile (`FROM`) | `node:24-alpine` |
-| GitHub Actions CI | Node 24 |
 | Local dev | Node 24 recommended |
 
 ---
