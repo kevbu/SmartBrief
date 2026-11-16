@@ -98,6 +98,13 @@ export interface NewsApiResponse {
   catchUpContext?: CatchUpContext
 }
 
+export interface SavedApiResponse {
+  articles: Article[]
+  topStories: TopStory[]
+  /** Articles referenced by saved top stories that are not saved themselves */
+  relatedArticles: Article[]
+}
+
 export interface RefreshApiResponse {
   success: boolean
   articleCount: number

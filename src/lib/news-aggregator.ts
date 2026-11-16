@@ -156,21 +156,26 @@ export async function refreshNews(): Promise<{
   const topStoryData = await generateTopStories(articles)
   console.log(`Generated ${topStoryData.length} top stories [${elapsed()}]`)
 
-  // 7. Delete old top stories and store new ones in a single batch
+  // 7. Replace unsaved top stories with the new batch. Saved ones survive and
+  // the shared createdAt marks the current batch for the feed.
   if (topStoryData.length > 0) {
-    await db.topStory.deleteMany({})
-    await db.topStory.createMany({
-      data: topStoryData.map((ts) => ({
-        title: ts.title,
-        summary: ts.summary,
-        category: ts.category,
-        articleIds: JSON.stringify(ts.articleIds),
-        sources: JSON.stringify(ts.sources),
-        sentiment: ts.sentiment,
-        bullets: JSON.stringify(ts.bullets ?? []),
-        clusterArticles: JSON.stringify(ts.clusterArticles ?? []),
-      })),
-    })
+    const batchCreatedAt = new Date()
+    await db.$transaction([
+      db.topStory.deleteMany({ where: { saved: false } }),
+      db.topStory.createMany({
+        data: topStoryData.map((ts) => ({
+          createdAt: batchCreatedAt,
+          title: ts.title,
+          summary: ts.summary,
+          category: ts.category,
+          articleIds: JSON.stringify(ts.articleIds),
+          sources: JSON.stringify(ts.sources),
+          sentiment: ts.sentiment,
+          bullets: JSON.stringify(ts.bullets ?? []),
+          clusterArticles: JSON.stringify(ts.clusterArticles ?? []),
+        })),
+      }),
+    ])
     console.log(`Created ${topStoryData.length} top stories`)
   }
 
