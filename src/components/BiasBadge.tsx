@@ -7,28 +7,46 @@ interface BiasBadgeProps {
   className?: string
 }
 
-const BIAS_CONFIG: Record<BiasType, { label: string; short: string; color: string }> = {
-  left:          { label: 'Left',         short: 'L',  color: 'bg-blue-600 text-white' },
-  'center-left': { label: 'Center-Left',  short: 'CL', color: 'bg-blue-400 text-white' },
-  center:        { label: 'Center',       short: 'C',  color: 'bg-gray-400 text-white' },
-  'center-right':{ label: 'Center-Right', short: 'CR', color: 'bg-orange-400 text-white' },
-  right:         { label: 'Right',        short: 'R',  color: 'bg-red-500 text-white' },
+const BIAS_ORDER: BiasType[] = ['left', 'center-left', 'center', 'center-right', 'right']
+
+const BIAS_LABEL: Record<BiasType, string> = {
+  left: 'Left',
+  'center-left': 'Center-left',
+  center: 'Center',
+  'center-right': 'Center-right',
+  right: 'Right',
 }
 
+const BIAS_COLOR: Record<BiasType, string> = {
+  left: 'bg-blue-600 dark:bg-blue-400',
+  'center-left': 'bg-sky-500 dark:bg-sky-400',
+  center: 'bg-ink-muted',
+  'center-right': 'bg-orange-500 dark:bg-orange-400',
+  right: 'bg-red-600 dark:bg-red-400',
+}
+
+/** Five-tick left→right spectrum with the source's position highlighted. */
 export default function BiasBadge({ source, className }: BiasBadgeProps) {
   const bias = getBiasForSource(source)
-  const config = BIAS_CONFIG[bias]
+  const index = BIAS_ORDER.indexOf(bias)
+  const label = `Political lean: ${BIAS_LABEL[bias]}`
 
   return (
     <span
-      className={clsx(
-        'inline-flex items-center rounded px-1 py-0.5 text-[10px] font-bold leading-none',
-        config.color,
-        className
-      )}
-      title={`Political bias: ${config.label}`}
+      className={clsx('inline-flex flex-shrink-0 items-center gap-[2px] rounded-full bg-well px-1.5 py-1', className)}
+      title={label}
+      role="img"
+      aria-label={label}
     >
-      {config.short}
+      {BIAS_ORDER.map((b, i) => (
+        <span
+          key={b}
+          className={clsx(
+            'h-1.5 rounded-full transition-colors',
+            i === index ? `w-2.5 ${BIAS_COLOR[bias]}` : 'w-1 bg-line-strong'
+          )}
+        />
+      ))}
     </span>
   )
 }

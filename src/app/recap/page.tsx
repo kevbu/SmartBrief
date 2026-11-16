@@ -3,22 +3,17 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import SourceMark from '@/components/SourceMark'
+import PageHeader, { EmptyState, EmptyIcons } from '@/components/PageHeader'
+import CategoryIcon, { CATEGORY_LABELS } from '@/components/CategoryIcon'
 import type { RecapStats, UserPreferences } from '@/types'
 
-const CATEGORY_LABELS: Record<string, string> = {
-  technology: '🤖 Tech & AI',
-  science:    '🧪 Science & Health',
-  business:   '📊 Business',
-  world:      '🌍 World',
-  positive:   '✨ Bright Spots',
-}
-
 const BIAS_DISPLAY: Record<string, { label: string; short: string; color: string }> = {
-  'left':         { label: 'Left',         short: 'L',  color: 'bg-blue-600' },
-  'center-left':  { label: 'Center-Left',  short: 'CL', color: 'bg-blue-400' },
-  'center':       { label: 'Center',       short: 'C',  color: 'bg-gray-400' },
-  'center-right': { label: 'Center-Right', short: 'CR', color: 'bg-orange-400' },
-  'right':        { label: 'Right',        short: 'R',  color: 'bg-red-500' },
+  'left':         { label: 'Left',         short: 'L',  color: 'bg-blue-600 dark:bg-blue-400' },
+  'center-left':  { label: 'Center-Left',  short: 'CL', color: 'bg-sky-500 dark:bg-sky-400' },
+  'center':       { label: 'Center',       short: 'C',  color: 'bg-ink-muted' },
+  'center-right': { label: 'Center-Right', short: 'CR', color: 'bg-orange-500 dark:bg-orange-400' },
+  'right':        { label: 'Right',        short: 'R',  color: 'bg-red-600 dark:bg-red-400' },
 }
 
 const PERIOD_OPTIONS = [
@@ -96,17 +91,11 @@ export default function RecapPage() {
   if (!isLoading && stats && stats.daysActive < 3 && stats.totalRead > 0) {
     return (
       <div className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">This Week</h1>
-        </header>
-        <div className="flex flex-1 flex-col items-center justify-center px-8 py-16 text-center">
-          <span className="mb-4 text-5xl">📊</span>
-          <p className="mb-2 text-base font-semibold text-gray-700 dark:text-gray-300">Almost there</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Read for a few more days to unlock your weekly recap.
-            You&apos;ve read on {stats.daysActive} day{stats.daysActive === 1 ? '' : 's'} so far — come back after day 3.
-          </p>
-        </div>
+        <PageHeader title="This Week" />
+        <EmptyState icon={EmptyIcons.chart} title="Almost there">
+          Read for a few more days to unlock your weekly recap.
+          You&apos;ve read on {stats.daysActive} day{stats.daysActive === 1 ? '' : 's'} so far. Come back after day 3.
+        </EmptyState>
       </div>
     )
   }
@@ -119,22 +108,20 @@ export default function RecapPage() {
   return (
     <div className="pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">This Week</h1>
-        <p className="text-xs text-gray-400 dark:text-gray-500">Your reading habits at a glance · all data stays local</p>
-      </header>
+      <PageHeader title="This Week" subtitle="Your reading habits at a glance · all data stays local" />
 
       {/* Period selector */}
       <div className="px-4 pt-4">
-        <div className="flex gap-2 rounded-xl bg-gray-100 p-1 dark:bg-gray-800">
+        <div className="flex gap-1 rounded-xl bg-well p-1" role="group" aria-label="Period">
           {PERIOD_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setPeriod(opt.value)}
-              className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-all ${
+              aria-pressed={period === opt.value}
+              className={`min-h-[36px] flex-1 cursor-pointer rounded-lg py-1.5 text-xs font-medium transition-colors duration-200 ${
                 period === opt.value
-                  ? 'bg-white text-slate-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'bg-raised text-ink shadow-card'
+                  : 'text-ink-muted hover:text-ink'
               }`}
             >
               {opt.label}
@@ -149,40 +136,36 @@ export default function RecapPage() {
         </div>
       ) : !stats || stats.totalRead === 0 ? (
         /* ── Zero-read empty state ────────────────────────────────────────── */
-        <div className="flex flex-col items-center justify-center px-8 py-16 text-center">
-          <span className="mb-4 text-5xl">📰</span>
-          <p className="mb-2 text-base font-semibold text-gray-700 dark:text-gray-300">No briefings this week</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Come back after your next read to see your news-diet summary.
-          </p>
-        </div>
+        <EmptyState icon={EmptyIcons.newspaper} title="No briefings this week">
+          Come back after your next read to see your news-diet summary.
+        </EmptyState>
       ) : (
         <div className="space-y-3 px-4 py-4">
 
           {/* ── 5.1 Overview Bar ────────────────────────────────────────── */}
-          <section className="rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 p-5 dark:from-blue-950/50 dark:to-indigo-950/50">
-            <div className="grid grid-cols-3 gap-3 text-center">
+          <section className="rounded-2xl border border-line bg-card p-5 shadow-card">
+            <div className="grid grid-cols-3 divide-x divide-line text-center">
               <div>
-                <p className="text-2xl font-bold text-blue-600">{stats.totalRead}</p>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">stories read</p>
+                <p className="headline text-[32px] font-semibold leading-none tabular-nums">{stats.totalRead}</p>
+                <p className="mt-1.5 text-[11px] text-ink-muted">stories read</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-blue-600">{stats.daysActive}</p>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">of {period} days active</p>
+                <p className="headline text-[32px] font-semibold leading-none tabular-nums">{stats.daysActive}</p>
+                <p className="mt-1.5 text-[11px] text-ink-muted">of {period} days active</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="headline text-[32px] font-semibold leading-none tabular-nums">
                   {stats.daysActive > 0 ? Math.round(stats.totalRead / stats.daysActive) : '—'}
                 </p>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">avg per day</p>
+                <p className="mt-1.5 text-[11px] text-ink-muted">avg per day</p>
               </div>
             </div>
           </section>
 
           {/* ── 5.2 Topic Mix ───────────────────────────────────────────── */}
           {Object.keys(stats.topicMix).length > 0 && (
-            <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-              <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Topics Read</h3>
+            <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+              <h3 className="eyebrow mb-3 text-ink-muted">Topics Read</h3>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(stats.topicMix)
                   .sort(([, a], [, b]) => b - a)
@@ -192,10 +175,11 @@ export default function RecapPage() {
                       <Link
                         key={topic}
                         href={`/?category=${topic}`}
-                        className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 active:scale-95 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                        className="flex min-h-[36px] items-center gap-1.5 rounded-full border border-line bg-well/60 py-1.5 pl-2.5 pr-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
                       >
+                        <CategoryIcon category={topic} />
                         <span>{CATEGORY_LABELS[topic] ?? topic}</span>
-                        <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 dark:bg-blue-800/50 dark:text-blue-300">
+                        <span className="rounded-full bg-card px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-ink">
                           {p}%
                         </span>
                       </Link>
@@ -203,16 +187,16 @@ export default function RecapPage() {
                   })}
               </div>
               {/* Proportional bar */}
-              <div className="mt-3 flex h-2 overflow-hidden rounded-full">
+              <div className="mt-3 flex h-2 gap-0.5">
                 {Object.entries(stats.topicMix)
                   .sort(([, a], [, b]) => b - a)
                   .map(([topic, count], i) => {
                     const p = pct(count, topicTotal)
-                    const colors = ['bg-blue-500', 'bg-indigo-400', 'bg-violet-400', 'bg-cyan-400', 'bg-teal-400']
+                    const colors = ['bg-accent', 'bg-accent/70', 'bg-accent/45', 'bg-accent/25', 'bg-line-strong']
                     return (
                       <div
                         key={topic}
-                        className={`${colors[i % colors.length]} first:rounded-l-full last:rounded-r-full`}
+                        className={`${colors[i % colors.length]} rounded-full`}
                         style={{ width: `${p}%` }}
                         title={`${CATEGORY_LABELS[topic] ?? topic}: ${p}%`}
                       />
@@ -223,35 +207,35 @@ export default function RecapPage() {
           )}
 
           {/* ── 5.3 Sentiment Distribution ──────────────────────────────── */}
-          <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-            <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Sentiment Distribution</h3>
+          <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+            <h3 className="eyebrow mb-3 text-ink-muted">Sentiment Distribution</h3>
 
             {/* Stacked bar: actual */}
-            <div className="mb-1 flex h-3 overflow-hidden rounded-full">
-              <div className="bg-emerald-500 transition-all" style={{ width: `${pct(stats.sentimentMix.positive, sentimentTotal)}%` }} />
-              <div className="bg-gray-300 transition-all" style={{ width: `${pct(stats.sentimentMix.neutral, sentimentTotal)}%` }} />
-              <div className="bg-amber-400 transition-all" style={{ width: `${pct(stats.sentimentMix.negative, sentimentTotal)}%` }} />
+            <div className="mb-2 flex h-2.5 gap-0.5">
+              <div className="rounded-full bg-positive transition-all" style={{ width: `${pct(stats.sentimentMix.positive, sentimentTotal)}%` }} />
+              <div className="rounded-full bg-line-strong transition-all" style={{ width: `${pct(stats.sentimentMix.neutral, sentimentTotal)}%` }} />
+              <div className="rounded-full bg-negative transition-all" style={{ width: `${pct(stats.sentimentMix.negative, sentimentTotal)}%` }} />
             </div>
 
-            <div className="mb-3 flex gap-3 text-[11px] text-gray-500 dark:text-gray-400">
-              <span>✨ {pct(stats.sentimentMix.positive, sentimentTotal)}%</span>
-              <span>📰 {pct(stats.sentimentMix.neutral, sentimentTotal)}%</span>
-              <span>📌 {pct(stats.sentimentMix.negative, sentimentTotal)}%</span>
+            <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-soft">
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-positive" /><b className="tabular-nums text-ink">{pct(stats.sentimentMix.positive, sentimentTotal)}%</b> uplifting</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-line-strong" /><b className="tabular-nums text-ink">{pct(stats.sentimentMix.neutral, sentimentTotal)}%</b> neutral</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-negative" /><b className="tabular-nums text-ink">{pct(stats.sentimentMix.negative, sentimentTotal)}%</b> in focus</span>
             </div>
 
             {/* Target comparison */}
             {prefs && (
-              <div className="rounded-lg bg-gray-50 px-3 py-2 text-[11px] text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                <span className="font-medium text-gray-600 dark:text-gray-300">Your {prefs.moodPreset} target: </span>
-                ✨ {Math.round(prefs.positiveRatio * 100)}% · 📰 {Math.round(prefs.neutralRatio * 100)}% · 📌 {Math.round(prefs.negativeRatio * 100)}%
+              <div className="rounded-xl bg-well/60 px-3 py-2 text-[11px] text-ink-muted">
+                <span className="font-medium text-ink-soft">Your {prefs.moodPreset} target: </span>
+                <span className="tabular-nums">{Math.round(prefs.positiveRatio * 100)}% uplifting · {Math.round(prefs.neutralRatio * 100)}% neutral · {Math.round(prefs.negativeRatio * 100)}% in focus</span>
               </div>
             )}
 
             {/* Nudge */}
             {nudge ? (
-              <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 dark:bg-amber-950/50">
-                <p className="text-[11px] text-amber-700 dark:text-amber-400">{nudge}</p>
-                <Link href="/settings" className="mt-1 block text-[11px] font-medium text-amber-600 hover:underline dark:text-amber-500">
+              <div className="mt-3 rounded-xl bg-negative-soft px-3 py-2">
+                <p className="text-[11px] text-negative-ink">{nudge}</p>
+                <Link href="/settings" className="mt-1 block text-[11px] font-semibold text-negative-ink hover:underline">
                   Adjust mood preset →
                 </Link>
               </div>
@@ -259,17 +243,17 @@ export default function RecapPage() {
           </section>
 
           {/* ── 5.4 Bias Spread ─────────────────────────────────────────── */}
-          <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-            <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">Bias Spread</h3>
-            <p className="mb-3 text-[11px] text-gray-400 dark:text-gray-500">Source political positioning of stories you read — for information only</p>
+          <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+            <h3 className="eyebrow mb-1 text-ink-muted">Bias Spread</h3>
+            <p className="mb-3 text-[11px] text-ink-muted">Source political positioning of stories you read — for information only</p>
 
             {/* Stacked bar */}
-            <div className="mb-3 flex h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+            <div className="mb-3 flex h-2.5 gap-0.5">
               {Object.entries(BIAS_DISPLAY).map(([key, { color }]) => {
                 const count = stats.biasMix[key] ?? 0
                 const p = pct(count, biasTotal)
                 return p > 0 ? (
-                  <div key={key} className={`${color} transition-all`} style={{ width: `${p}%` }} title={`${BIAS_DISPLAY[key].label}: ${p}%`} />
+                  <div key={key} className={`${color} rounded-full transition-all`} style={{ width: `${p}%` }} title={`${BIAS_DISPLAY[key].label}: ${p}%`} />
                 ) : null
               })}
             </div>
@@ -281,40 +265,40 @@ export default function RecapPage() {
                 const p = pct(count, biasTotal)
                 return (
                   <div key={key} className="space-y-1">
-                    <div className={`mx-auto h-2 w-2 rounded-full ${count === 0 ? 'bg-gray-200 dark:bg-gray-700' : color}`} />
-                    <p className={`text-[10px] font-medium ${count === 0 ? 'text-gray-300 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400'}`}>{short}</p>
-                    <p className={`text-[10px] ${count === 0 ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>{p}%</p>
+                    <div className={`mx-auto h-2 w-2 rounded-full ${count === 0 ? 'bg-well-strong' : color}`} />
+                    <p className={`text-[10px] font-medium ${count === 0 ? 'text-ink-faint' : 'text-ink-soft'}`}>{short}</p>
+                    <p className={`text-[10px] ${count === 0 ? 'text-ink-faint' : 'text-ink-muted'}`}>{p}%</p>
                   </div>
                 )
               })}
             </div>
-            <div className="mt-2 text-center text-[10px] text-gray-300 dark:text-gray-600">L · CL · C · CR · R</div>
+            <div className="mt-2 text-center text-[10px] text-ink-faint">L · CL · C · CR · R</div>
           </section>
 
           {/* ── 5.5 Feedback Summary ────────────────────────────────────── */}
-          <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-            <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Feedback Given</h3>
+          <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+            <h3 className="eyebrow mb-3 text-ink-muted">Feedback Given</h3>
 
             {stats.feedbackSummary.moreLikeThis === 0 &&
              stats.feedbackSummary.lessLikeThis === 0 &&
              stats.feedbackSummary.hiddenSourceCount === 0 ? (
-              <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                No feedback given this week — tap 👍 👎 on any card to teach SmartBrief your preferences.
+              <p className="text-[11px] text-ink-muted">
+                No feedback given this week. Use the ··· menu on any card to teach SmartBrief your preferences.
               </p>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">👍 More like this</span>
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">{stats.feedbackSummary.moreLikeThis}</span>
+                  <span className="flex items-center gap-2 text-ink-soft"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-ink-muted" aria-hidden="true"><path d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" /></svg>More like this</span>
+                  <span className="font-semibold tabular-nums text-ink">{stats.feedbackSummary.moreLikeThis}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">👎 Less like this</span>
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">{stats.feedbackSummary.lessLikeThis}</span>
+                  <span className="flex items-center gap-2 text-ink-soft"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-ink-muted" aria-hidden="true"><path d="M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" /></svg>Less like this</span>
+                  <span className="font-semibold tabular-nums text-ink">{stats.feedbackSummary.lessLikeThis}</span>
                 </div>
                 {stats.feedbackSummary.hiddenSourceCount > 0 && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">🚫 Hidden sources</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{stats.feedbackSummary.hiddenSourceCount}</span>
+                    <span className="flex items-center gap-2 text-ink-soft"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-ink-muted" aria-hidden="true"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><path d="m2 2 20 20" /></svg>Hidden sources</span>
+                    <span className="font-semibold tabular-nums text-ink">{stats.feedbackSummary.hiddenSourceCount}</span>
                   </div>
                 )}
               </div>
@@ -322,14 +306,14 @@ export default function RecapPage() {
 
             {/* Topic nudge(s) */}
             {stats.feedbackSummary.topicNudges.length > 0 && (
-              <div className="mt-3 rounded-lg bg-orange-50 px-3 py-2 dark:bg-orange-950/50">
+              <div className="mt-3 rounded-xl bg-negative-soft px-3 py-2">
                 {stats.feedbackSummary.topicNudges.map((topic) => (
-                  <p key={topic} className="text-[11px] text-orange-700 dark:text-orange-400">
+                  <p key={topic} className="text-[11px] text-negative-ink">
                     You gave negative feedback on <strong>{CATEGORY_LABELS[topic] ?? topic}</strong> stories multiple times.
                     Consider disabling that tab in settings.
                   </p>
                 ))}
-                <Link href="/settings" className="mt-1 block text-[11px] font-medium text-orange-600 hover:underline dark:text-orange-500">
+                <Link href="/settings" className="mt-1 block text-[11px] font-semibold text-negative-ink hover:underline">
                   Manage sources →
                 </Link>
               </div>
@@ -338,23 +322,23 @@ export default function RecapPage() {
 
           {/* ── Top Sources ─────────────────────────────────────────────── */}
           {Object.keys(stats.sourceMix).length > 0 && (
-            <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-              <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Top Sources</h3>
-              <div className="space-y-1.5">
+            <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+              <h3 className="eyebrow mb-3 text-ink-muted">Top Sources</h3>
+              <div className="space-y-2">
                 {Object.entries(stats.sourceMix)
                   .sort(([, a], [, b]) => b - a)
                   .slice(0, 5)
                   .map(([source, count]) => (
                     <div key={source} className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{source}</span>
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-500 dark:bg-gray-800 dark:text-gray-400">{count}</span>
+                      <span className="flex items-center gap-2 font-medium text-ink-soft"><SourceMark source={source} />{source}</span>
+                      <span className="rounded-full bg-well px-2 py-0.5 tabular-nums text-ink-muted">{count}</span>
                     </div>
                   ))}
               </div>
             </section>
           )}
 
-          <p className="pb-2 text-center text-[10px] text-gray-300 dark:text-gray-600">All data computed locally · nothing leaves your server</p>
+          <p className="pb-2 text-center text-[10px] text-ink-faint">All data computed locally · nothing leaves your server</p>
         </div>
       )}
     </div>

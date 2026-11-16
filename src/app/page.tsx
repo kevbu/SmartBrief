@@ -31,15 +31,15 @@ const TOPIC_LABELS: Record<string, string> = {
 
 function SkeletonCard() {
   return (
-    <div className="mx-4 mb-2 rounded-2xl bg-white p-4 ring-1 ring-slate-100 dark:bg-slate-900 dark:ring-slate-800">
+    <div className="mx-4 mb-3 rounded-2xl border border-line bg-card p-4 shadow-card" aria-hidden="true">
       <div className="mb-2 flex gap-2">
-        <div className="h-3 w-12 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
-        <div className="h-3 w-8 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+        <div className="h-3 w-16 animate-pulse rounded bg-well" />
+        <div className="h-3 w-10 animate-pulse rounded bg-well" />
       </div>
-      <div className="mb-1.5 h-4 w-full animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
-      <div className="mb-3 h-4 w-3/4 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
-      <div className="h-3 w-full animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
-      <div className="mt-1 h-3 w-2/3 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+      <div className="mb-2 h-5 w-full animate-pulse rounded-md bg-well-strong/70" />
+      <div className="mb-3 h-5 w-3/4 animate-pulse rounded-md bg-well-strong/70" />
+      <div className="h-3 w-full animate-pulse rounded-lg bg-well" />
+      <div className="mt-1 h-3 w-2/3 animate-pulse rounded-lg bg-well" />
     </div>
   )
 }
@@ -344,39 +344,41 @@ export default function HomePage() {
       />
 
       {!hasApiKey && (
-        <div className="mx-4 mt-3 rounded-2xl bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900/60">
+        <div className="mx-4 mt-3 rounded-2xl border border-negative/25 bg-negative-soft p-3 text-xs leading-relaxed text-negative-ink">
           <strong>AI features disabled.</strong> Add your{' '}
-          <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/40">ANTHROPIC_API_KEY</code>{' '}
+          <code className="rounded bg-negative/15 px-1">ANTHROPIC_API_KEY</code>{' '}
           to{' '}
-          <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/40">.env.local</code>{' '}
+          <code className="rounded bg-negative/15 px-1">.env.local</code>{' '}
           to enable sentiment analysis and smart summaries.
         </div>
       )}
 
       {error && (
-        <div className="mx-4 mt-3 rounded-2xl bg-red-50 p-3 text-xs text-red-700 ring-1 ring-red-100 dark:bg-red-950/40 dark:text-red-400 dark:ring-red-900/60">
+        <div role="alert" className="mx-4 mt-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
           {error}
         </div>
       )}
 
       {/* Tab switcher: Feed / Newsletters */}
-      <div className="flex border-b border-slate-200 px-4 dark:border-slate-800">
+      <div className="flex gap-6 border-b border-line px-4" role="tablist" aria-label="Feed type">
         {(['feed', 'newsletters'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
+            role="tab"
+            aria-selected={activeTab === tab}
             className={[
-              'relative mr-6 pb-2 pt-3 text-sm font-medium transition-colors',
+              '-mb-px cursor-pointer border-b-2 pb-2.5 pt-3 text-sm font-semibold transition-colors duration-200',
               activeTab === tab
-                ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
+                ? 'border-ink text-ink'
+                : 'border-transparent text-ink-muted hover:text-ink',
             ].join(' ')}
           >
             {tab === 'feed' ? 'Feed' : (
               <span className="flex items-center gap-1.5">
                 Newsletters
                 {newsletterUnreadCount > 0 && (
-                  <span className="rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none text-on-accent">
                     {newsletterUnreadCount > 99 ? '99+' : newsletterUnreadCount}
                   </span>
                 )}
@@ -394,10 +396,10 @@ export default function HomePage() {
             <button
               onClick={handlePollNow}
               disabled={isPollLoading}
-              className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              className="flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border border-line bg-card px-3.5 py-1.5 text-xs font-medium text-ink-soft shadow-card transition-colors hover:border-line-strong hover:text-ink disabled:opacity-50"
             >
               {isPollLoading ? (
-                <LoadingSpinner size="sm" className="text-slate-500" />
+                <LoadingSpinner size="sm" className="text-ink-muted" />
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
                   <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -411,7 +413,7 @@ export default function HomePage() {
             <button
               onClick={handleMarkAllRead}
               disabled={newsletterUnreadCount === 0}
-              className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-40 disabled:pointer-events-none dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              className="flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border border-line bg-card px-3.5 py-1.5 text-xs font-medium text-ink-soft shadow-card transition-colors hover:border-line-strong hover:text-ink disabled:opacity-40 disabled:pointer-events-none"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
                 <path d="M18 6 7 17l-5-5" />
@@ -429,28 +431,28 @@ export default function HomePage() {
               <SkeletonCard />
             </div>
           ) : newsletterError ? (
-            <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-red-800/40 bg-red-950/30 px-4 py-3">
-              <p className="text-xs text-red-400">{newsletterError}</p>
-              <button onClick={() => fetchNewsletters(1)} className="text-xs text-red-300 underline underline-offset-2 hover:text-red-200">
+            <div role="alert" className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/40">
+              <p className="text-xs text-red-700 dark:text-red-300">{newsletterError}</p>
+              <button onClick={() => fetchNewsletters(1)} className="cursor-pointer text-xs font-semibold text-red-700 underline underline-offset-2 hover:text-red-900 dark:text-red-300 dark:hover:text-red-100">
                 Retry
               </button>
             </div>
           ) : newsletters.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 px-8 py-16 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-slate-400 dark:text-slate-500">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-card shadow-card">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-ink-muted">
                   <rect width="20" height="16" x="2" y="4" rx="2" />
                   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                 </svg>
               </div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No newsletters yet</p>
-              <p className="max-w-[220px] text-xs text-slate-400 dark:text-slate-500">
+              <p className="headline text-lg font-semibold">No newsletters yet</p>
+              <p className="max-w-[220px] text-xs text-ink-muted">
                 Newsletters you receive will appear here. Configure IMAP in Settings.
               </p>
               <button
                 onClick={handlePollNow}
                 disabled={isPollLoading}
-                className="mt-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                className="mt-1 cursor-pointer rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-ink/85 disabled:opacity-50"
               >
                 Poll now
               </button>
@@ -470,7 +472,7 @@ export default function HomePage() {
                 <button
                   onClick={() => fetchNewsletters(newsletterPage + 1, true)}
                   disabled={isNewsletterLoading}
-                  className="mx-4 my-4 rounded-xl border border-slate-200 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50"
+                  className="mx-4 my-4 min-h-[44px] cursor-pointer rounded-full border border-line bg-card py-2 text-sm font-medium text-ink-soft shadow-card transition-colors hover:border-line-strong hover:text-ink disabled:opacity-50"
                 >
                   Load more
                 </button>
@@ -514,22 +516,22 @@ export default function HomePage() {
             <div className="px-4 pt-2">
               <Link
                 href="/recap"
-                className="flex cursor-pointer items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 ring-1 ring-indigo-100 transition-all active:scale-[0.99] dark:bg-indigo-950/40 dark:ring-indigo-900/60"
+                className="flex cursor-pointer items-center justify-between rounded-2xl border border-accent/20 bg-accent-soft px-5 py-4 transition-colors duration-200 hover:border-accent/40"
               >
                 <div>
-                  <p className="flex items-center gap-1.5 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                  <p className="headline flex items-center gap-1.5 text-base font-semibold !text-accent-ink">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                       <path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3" />
                     </svg>
                     This Week&apos;s Recap
                   </p>
-                  <p className="mt-0.5 text-xs leading-snug text-indigo-500 dark:text-indigo-400">
+                  <p className="mt-0.5 text-xs leading-snug text-accent-ink/80">
                     You read {recapTeaser!.totalRead} {recapTeaser!.totalRead === 1 ? 'story' : 'stories'} this week
                     {recapTeaser!.topTopic ? ` — mostly ${TOPIC_LABELS[recapTeaser!.topTopic] ?? recapTeaser!.topTopic}` : ''}.
                     See your full reading summary.
                   </p>
                 </div>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="ml-3 h-5 w-5 flex-shrink-0 text-indigo-400 dark:text-indigo-500">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="ml-3 h-5 w-5 flex-shrink-0 text-accent">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                 </svg>
               </Link>
@@ -545,8 +547,8 @@ export default function HomePage() {
           {/* Depth mode toggle */}
           {articles.length > 0 && (
             <div className="mx-4 mb-2 flex items-center gap-2">
-              <span className="text-xs text-slate-400 dark:text-slate-500">View:</span>
-              <div className="flex rounded-xl bg-slate-100 p-0.5 dark:bg-slate-800">
+              <span className="text-xs font-medium text-ink-muted">View</span>
+              <div className="flex rounded-xl bg-well p-0.5">
                 {(['skim', 'deep'] as const).map((mode) => (
                   <button
                     key={mode}
@@ -565,10 +567,11 @@ export default function HomePage() {
                         console.error(err)
                       }
                     }}
-                    className={`flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
+                    aria-pressed={depthMode === mode}
+                    className={`flex min-h-[32px] cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium transition-colors duration-200 ${
                       depthMode === mode
-                        ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
-                        : 'text-slate-500 dark:text-slate-400'
+                        ? 'bg-raised text-ink shadow-card'
+                        : 'text-ink-muted'
                     }`}
                   >
                     {mode === 'skim' ? (
@@ -601,15 +604,15 @@ export default function HomePage() {
             </div>
           ) : unifiedFeed.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-slate-400 dark:text-slate-500">
+              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-card shadow-card">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-ink-muted">
                   <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2M18 14h-8M15 18h-5M10 6h8v4h-8V6Z" />
                 </svg>
               </div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                No articles yet
+              <p className="headline text-lg font-semibold">
+                No stories yet
               </p>
-              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+              <p className="mt-1 text-xs text-ink-muted">
                 Tap the refresh button to fetch news
               </p>
             </div>
@@ -631,17 +634,17 @@ export default function HomePage() {
               {showRecapTeaser && !isWeekendReset && (
                 <Link
                   href="/recap"
-                  className="mx-4 mb-4 flex cursor-pointer items-center justify-between rounded-2xl bg-indigo-50 px-5 py-4 ring-1 ring-indigo-100 transition-all active:scale-[0.99] dark:bg-indigo-950/40 dark:ring-indigo-900/60"
+                  className="mx-4 mb-4 flex cursor-pointer items-center justify-between rounded-2xl border border-accent/20 bg-accent-soft px-5 py-4 transition-colors duration-200 hover:border-accent/40"
                 >
                   <div>
-                    <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">This Week</p>
-                    <p className="mt-0.5 text-[11px] leading-snug text-indigo-500 dark:text-indigo-400">
+                    <p className="headline text-base font-semibold !text-accent-ink">This Week</p>
+                    <p className="mt-0.5 text-[11px] leading-snug text-accent-ink/80">
                       You read {recapTeaser.totalRead} {recapTeaser.totalRead === 1 ? 'story' : 'stories'} this week
                       {recapTeaser.topTopic ? ` — mostly ${TOPIC_LABELS[recapTeaser.topTopic] ?? recapTeaser.topTopic}` : ''}.
                       Tap to see your full recap.
                     </p>
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="ml-3 h-4 w-4 flex-shrink-0 text-indigo-400 dark:text-indigo-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="ml-3 h-4 w-4 flex-shrink-0 text-accent">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                   </svg>
                 </Link>
@@ -649,7 +652,7 @@ export default function HomePage() {
 
               {isRefreshing && (
                 <div className="flex justify-center py-4">
-                  <LoadingSpinner size="sm" className="text-slate-400" />
+                  <LoadingSpinner size="sm" className="text-ink-muted" />
                 </div>
               )}
             </div>

@@ -48,7 +48,7 @@ export default function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-100 bg-white/95 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-950/95">
+    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-line bg-paper/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-md md:max-w-2xl lg:max-w-4xl items-center justify-around pb-safe">
         {navItems.map((item) => {
           const isActive = pathname === item.href
@@ -56,20 +56,21 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors"
+              aria-current={isActive ? 'page' : undefined}
+              className="group flex min-h-[56px] flex-1 cursor-pointer flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors"
             >
               <span
                 className={clsx(
-                  'flex items-center justify-center rounded-full px-3 py-1 transition-all',
+                  'flex items-center justify-center rounded-full px-4 py-1 transition-colors duration-200',
                   isActive
-                    ? 'bg-blue-50 text-blue-500 dark:bg-blue-500/10 dark:text-blue-400'
-                    : 'text-slate-400 dark:text-slate-500'
+                    ? 'bg-ink text-paper'
+                    : 'text-ink-muted group-hover:text-ink'
                 )}
               >
                 {item.icon(isActive)}
               </span>
               <span className={clsx(
-                isActive ? 'text-blue-500 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
+                isActive ? 'font-semibold text-ink' : 'text-ink-muted group-hover:text-ink'
               )}>
                 {item.label}
               </span>
