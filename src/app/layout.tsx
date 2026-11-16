@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Newsreader } from 'next/font/google'
 import './globals.css'
 import BottomNav from '@/components/BottomNav'
+import { THEME_INIT_SCRIPT } from '@/lib/theme'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,10 +35,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f7f6f2' },
-    { media: '(prefers-color-scheme: dark)', color: '#0e0e11' },
-  ],
+  // No themeColor here: THEME_INIT_SCRIPT owns the theme-color meta so it can
+  // follow the in-app theme choice, not only the OS media query.
 }
 
 export default function RootLayout({
@@ -46,8 +45,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

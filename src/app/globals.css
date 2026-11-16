@@ -6,7 +6,8 @@
   /*
    * Design tokens — "warm paper" editorial palette.
    * Values are space-separated RGB triples so Tailwind opacity modifiers work
-   * (e.g. bg-accent/10). Dark values swap in via prefers-color-scheme.
+   * (e.g. bg-accent/10). Dark values swap in via <html data-theme="dark">,
+   * which the theme script in layout.tsx resolves from the user's choice or the OS.
    */
   :root {
     color-scheme: light;
@@ -38,36 +39,34 @@
     --negative-ink: 146 64 14;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      color-scheme: dark;
+  :root[data-theme='dark'] {
+    color-scheme: dark;
 
-      --paper: 14 14 17;
-      --card: 23 23 27;
-      --raised: 54 54 62;
-      --well: 31 31 36;
-      --well-strong: 43 43 50;
-      --line: 38 38 44;
-      --line-strong: 58 58 66;
+    --paper: 14 14 17;
+    --card: 23 23 27;
+    --raised: 54 54 62;
+    --well: 31 31 36;
+    --well-strong: 43 43 50;
+    --line: 38 38 44;
+    --line-strong: 58 58 66;
 
-      --ink: 237 237 239;
-      --ink-soft: 190 190 197;
-      --ink-muted: 145 145 153;
-      --ink-faint: 86 86 94;
+    --ink: 237 237 239;
+    --ink-soft: 190 190 197;
+    --ink-muted: 145 145 153;
+    --ink-faint: 86 86 94;
 
-      --accent: 160 165 255;
-      --accent-soft: 37 37 72;
-      --accent-ink: 196 199 255;
-      --on-accent: 14 14 17;
+    --accent: 160 165 255;
+    --accent-soft: 37 37 72;
+    --accent-ink: 196 199 255;
+    --on-accent: 14 14 17;
 
-      --positive: 52 211 153;
-      --positive-soft: 15 46 36;
-      --positive-ink: 110 231 183;
+    --positive: 52 211 153;
+    --positive-soft: 15 46 36;
+    --positive-ink: 110 231 183;
 
-      --negative: 251 191 36;
-      --negative-soft: 52 37 12;
-      --negative-ink: 252 211 77;
-    }
+    --negative: 251 191 36;
+    --negative-soft: 52 37 12;
+    --negative-ink: 252 211 77;
   }
 
   * {
@@ -119,11 +118,9 @@
     background-color: hsl(var(--h) 42% 90%);
     color: hsl(var(--h) 48% 28%);
   }
-  @media (prefers-color-scheme: dark) {
-    .source-mark {
-      background-color: hsl(var(--h) 24% 20%);
-      color: hsl(var(--h) 60% 80%);
-    }
+  [data-theme='dark'] .source-mark {
+    background-color: hsl(var(--h) 24% 20%);
+    color: hsl(var(--h) 60% 80%);
   }
 }
 
