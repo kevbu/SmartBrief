@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import PageHeader from '@/components/PageHeader'
+import CategoryIcon from '@/components/CategoryIcon'
+import SourceMark from '@/components/SourceMark'
+import { MOOD_ICONS } from '@/components/MoodPresetToggle'
 import type { UserPreferences, MoodPreset, CustomSource } from '@/types'
 import { NEWS_SOURCES } from '@/lib/news-sources'
 
@@ -65,7 +69,7 @@ function ImapSection() {
     }
   }
 
-  if (!status) return <p className="text-xs text-gray-400 dark:text-gray-500">Loading…</p>
+  if (!status) return <p className="text-xs text-ink-muted">Loading…</p>
 
   if (!status.configured) {
     return (
@@ -109,14 +113,14 @@ IMAP_POLL_INTERVAL_MINS=30`}
         <button
           onClick={handleFetchNow}
           disabled={fetching}
-          className="flex-1 rounded-lg bg-blue-600 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+          className="flex-1 rounded-lg bg-accent py-2 text-xs font-medium text-on-accent transition-colors hover:bg-accent/90 disabled:opacity-60"
         >
           {fetching ? 'Fetching…' : 'Fetch now'}
         </button>
         <button
           onClick={handleTest}
           disabled={testing}
-          className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+          className="flex-1 rounded-lg border border-line bg-card py-2 text-xs font-medium text-ink-soft transition-colors hover:bg-well/60 disabled:opacity-60"
         >
           {testing ? 'Testing…' : 'Test connection'}
         </button>
@@ -179,43 +183,43 @@ function WebhookSection() {
         </div>
 
         {/* n8n */}
-        <div className="rounded-lg border border-gray-100 p-3 text-xs dark:border-gray-800">
-          <p className="font-semibold text-gray-800 mb-1 dark:text-gray-200">n8n</p>
-          <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
+        <div className="rounded-lg border border-line p-3 text-xs">
+          <p className="font-semibold text-ink mb-1">n8n</p>
+          <ol className="list-decimal list-inside space-y-1 text-ink-soft">
             <li>Add an <strong>Email Trigger</strong> (or Gmail/IMAP node)</li>
             <li>Connect an <strong>HTTP Request</strong> node:
               <ul className="ml-4 mt-0.5 space-y-0.5 list-disc list-inside">
                 <li>Method: POST</li>
-                <li>URL: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">https://your-domain/api/ingest/newsletter</code></li>
-                <li>Header: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">x-ingest-secret: your-secret</code></li>
-                <li>Body: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">{'{"subject":"{{$json.subject}}","from":"{{$json.from}}","html":"{{$json.html}}"}'}</code></li>
+                <li>URL: <code className="rounded bg-well px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
+                <li>Header: <code className="rounded bg-well px-1 font-mono">x-ingest-secret: your-secret</code></li>
+                <li>Body: <code className="rounded bg-well px-1 font-mono">{'{"subject":"{{$json.subject}}","from":"{{$json.from}}","html":"{{$json.html}}"}'}</code></li>
               </ul>
             </li>
           </ol>
         </div>
 
         {/* Zapier */}
-        <div className="rounded-lg border border-gray-100 p-3 text-xs dark:border-gray-800">
-          <p className="font-semibold text-gray-800 mb-1 dark:text-gray-200">Zapier</p>
-          <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
+        <div className="rounded-lg border border-line p-3 text-xs">
+          <p className="font-semibold text-ink mb-1">Zapier</p>
+          <ol className="list-decimal list-inside space-y-1 text-ink-soft">
             <li>Trigger: <strong>Email by Zapier</strong> (or Gmail: New Email)</li>
             <li>Action: <strong>Webhooks by Zapier → POST</strong></li>
-            <li>URL: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">https://your-domain/api/ingest/newsletter</code></li>
+            <li>URL: <code className="rounded bg-well px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
             <li>Payload type: <strong>JSON</strong> — map <code className="font-mono">subject</code>, <code className="font-mono">from</code>, <code className="font-mono">html</code></li>
-            <li>Header: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">x-ingest-secret: your-secret</code></li>
+            <li>Header: <code className="rounded bg-well px-1 font-mono">x-ingest-secret: your-secret</code></li>
           </ol>
         </div>
 
         {/* Make (Integromat) */}
-        <div className="rounded-lg border border-gray-100 p-3 text-xs dark:border-gray-800">
-          <p className="font-semibold text-gray-800 mb-1 dark:text-gray-200">Make (Integromat)</p>
-          <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
+        <div className="rounded-lg border border-line p-3 text-xs">
+          <p className="font-semibold text-ink mb-1">Make (Integromat)</p>
+          <ol className="list-decimal list-inside space-y-1 text-ink-soft">
             <li>Add an <strong>Email → Watch Emails</strong> module</li>
             <li>Add an <strong>HTTP → Make a request</strong> module:
               <ul className="ml-4 mt-0.5 space-y-0.5 list-disc list-inside">
                 <li>Method: POST · Content-Type: application/json</li>
-                <li>URL: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">https://your-domain/api/ingest/newsletter</code></li>
-                <li>Header: <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">x-ingest-secret: your-secret</code></li>
+                <li>URL: <code className="rounded bg-well px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
+                <li>Header: <code className="rounded bg-well px-1 font-mono">x-ingest-secret: your-secret</code></li>
                 <li>Body: map Subject, From address, HTML body</li>
               </ul>
             </li>
@@ -223,13 +227,13 @@ function WebhookSection() {
         </div>
 
         {/* Mailgun */}
-        <div className="rounded-lg border border-gray-100 p-3 text-xs dark:border-gray-800">
-          <p className="font-semibold text-gray-800 mb-1 dark:text-gray-200">Mailgun inbound routing</p>
-          <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
-            <li>In Mailgun → Receiving, create a Route with filter <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">match_recipient(&quot;newsletters@your-mailgun-domain.com&quot;)</code></li>
-            <li>Action: <strong>forward</strong> to <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">https://your-domain/api/ingest/newsletter</code></li>
-            <li>Add custom header <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">x-ingest-secret: your-secret</code> in the route</li>
-            <li>Forward newsletters to <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800 dark:text-gray-300">newsletters@your-mailgun-domain.com</code></li>
+        <div className="rounded-lg border border-line p-3 text-xs">
+          <p className="font-semibold text-ink mb-1">Mailgun inbound routing</p>
+          <ol className="list-decimal list-inside space-y-1 text-ink-soft">
+            <li>In Mailgun → Receiving, create a Route with filter <code className="rounded bg-well px-1 font-mono">match_recipient(&quot;newsletters@your-mailgun-domain.com&quot;)</code></li>
+            <li>Action: <strong>forward</strong> to <code className="rounded bg-well px-1 font-mono">https://your-domain/api/ingest/newsletter</code></li>
+            <li>Add custom header <code className="rounded bg-well px-1 font-mono">x-ingest-secret: your-secret</code> in the route</li>
+            <li>Forward newsletters to <code className="rounded bg-well px-1 font-mono">newsletters@your-mailgun-domain.com</code></li>
           </ol>
         </div>
       </div>
@@ -238,14 +242,14 @@ function WebhookSection() {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Webhook (n8n / Zapier / Mailgun)</p>
+      <p className="text-xs font-semibold text-ink-soft">Webhook (n8n / Zapier / Mailgun)</p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 truncate rounded-lg bg-gray-100 px-3 py-2 font-mono text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        <code className="flex-1 truncate rounded-lg bg-well px-3 py-2 font-mono text-[11px] text-ink-soft">
           {webhookUrl}
         </code>
         <button
           onClick={copyUrl}
-          className="flex-shrink-0 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+          className="flex-shrink-0 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-on-accent transition-colors hover:bg-accent/90"
         >
           {copied ? 'Copied!' : 'Copy'}
         </button>
@@ -304,7 +308,7 @@ function NewsletterSourcesSection() {
 
   if (sources.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-gray-200 p-3 text-center text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+      <div className="rounded-lg border border-dashed border-line p-3 text-center text-xs text-ink-muted">
         No newsletters ingested yet — configure IMAP or webhook above to get started.
       </div>
     )
@@ -312,16 +316,16 @@ function NewsletterSourcesSection() {
 
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">Ingested newsletters</p>
+      <p className="mb-2 text-xs font-semibold text-ink-soft">Ingested newsletters</p>
       <div className="space-y-0.5">
         {sources.map((s) => (
           <div
             key={s.name}
-            className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${!s.enabled ? 'opacity-50' : ''}`}
+            className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-well/60 ${!s.enabled ? 'opacity-50' : ''}`}
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">✉️ {s.name}</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">{s.count} article{s.count === 1 ? '' : 's'} ingested</p>
+              <p className="flex items-center gap-2 truncate text-sm font-medium text-ink"><SourceMark source={s.name} newsletter />{s.name}</p>
+              <p className="text-[10px] text-ink-muted">{s.count} article{s.count === 1 ? '' : 's'} ingested</p>
             </div>
             <button
               onClick={() => handleToggle(s.name, s.enabled)}
@@ -330,7 +334,7 @@ function NewsletterSourcesSection() {
               aria-label={`${s.enabled ? 'Hide' : 'Show'} ${s.name} in feed`}
               aria-pressed={s.enabled}
             >
-              <div className={`relative h-5 w-9 rounded-full transition-colors ${s.enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
+              <div className={`relative h-5 w-9 rounded-full transition-colors ${s.enabled ? 'bg-accent' : 'bg-well-strong'}`}>
                 <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${s.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
               </div>
             </button>
@@ -430,11 +434,11 @@ function LearnedPreferencesSection({
     (data.boostedTopics.length > 0 || data.suppressedTopics.length > 0 || data.suppressedSources.length > 0)
 
   return (
-    <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+    <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Feed Learning</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <h2 className="headline text-lg font-semibold">Feed Learning</h2>
+          <p className="text-xs text-ink-muted">
             Adapts your feed based on what you read and skip
           </p>
         </div>
@@ -444,11 +448,11 @@ function LearnedPreferencesSection({
           aria-checked={learningEnabled}
           onClick={() => onToggleLearning(!learningEnabled)}
           className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
-            learningEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'
+            learningEnabled ? 'bg-accent' : 'bg-line-strong'
           }`}
         >
           <span
-            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-card shadow transition-transform ${
               learningEnabled ? 'translate-x-5' : 'translate-x-0'
             }`}
           />
@@ -456,9 +460,9 @@ function LearnedPreferencesSection({
       </div>
 
       {loading ? (
-        <p className="text-xs text-gray-400">Loading…</p>
+        <p className="text-xs text-ink-muted">Loading…</p>
       ) : !hasAnyData ? (
-        <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+        <p className="rounded-lg bg-well/60 px-3 py-2 text-xs text-ink-muted">
           {data?.signalCount === 0
             ? 'No signals yet — start reading to personalise your feed'
             : 'No strong preferences detected yet — keep reading'}
@@ -468,18 +472,18 @@ function LearnedPreferencesSection({
           {/* Boosted topics */}
           {data.boostedTopics.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Boosted topics</p>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-muted">Boosted topics</p>
               <div className="space-y-1">
                 {data.boostedTopics.map((t) => (
                   <div key={t.topic} className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                    <span className="flex items-center gap-1.5 text-sm text-ink-soft">
                       <span className="text-green-500">↑</span>
                       {CATEGORY_DISPLAY[t.topic] ?? t.topic}
                     </span>
                     <button
                       onClick={() => resetTopic(t.topic)}
                       disabled={resetting === t.topic}
-                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40 dark:text-gray-500 dark:hover:text-gray-300"
+                      className="text-xs text-ink-muted underline-offset-2 hover:text-ink-soft hover:underline disabled:opacity-40"
                     >
                       Reset
                     </button>
@@ -492,18 +496,18 @@ function LearnedPreferencesSection({
           {/* Suppressed topics */}
           {data.suppressedTopics.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Suppressed topics</p>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-muted">Suppressed topics</p>
               <div className="space-y-1">
                 {data.suppressedTopics.map((t) => (
                   <div key={t.topic} className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                    <span className="flex items-center gap-1.5 text-sm text-ink-soft">
                       <span className="text-orange-400">↓</span>
                       {CATEGORY_DISPLAY[t.topic] ?? t.topic}
                     </span>
                     <button
                       onClick={() => resetTopic(t.topic)}
                       disabled={resetting === t.topic}
-                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40 dark:text-gray-500 dark:hover:text-gray-300"
+                      className="text-xs text-ink-muted underline-offset-2 hover:text-ink-soft hover:underline disabled:opacity-40"
                     >
                       Reset
                     </button>
@@ -516,15 +520,15 @@ function LearnedPreferencesSection({
           {/* Hidden sources */}
           {data.suppressedSources.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Hidden sources</p>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-muted">Hidden sources</p>
               <div className="space-y-1">
                 {data.suppressedSources.map((s) => (
                   <div key={s} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{s}</span>
+                    <span className="text-sm text-ink-soft">{s}</span>
                     <button
                       onClick={() => resetSource(s)}
                       disabled={resetting === s}
-                      className="text-xs text-gray-400 underline-offset-2 hover:text-gray-600 hover:underline disabled:opacity-40 dark:text-gray-500 dark:hover:text-gray-300"
+                      className="text-xs text-ink-muted underline-offset-2 hover:text-ink-soft hover:underline disabled:opacity-40"
                     >
                       Unhide
                     </button>
@@ -538,7 +542,7 @@ function LearnedPreferencesSection({
 
       {/* Signal count */}
       {data && data.signalCount > 0 && (
-        <p className="mt-3 text-[10px] text-gray-300 dark:text-gray-600">
+        <p className="mt-3 text-[10px] text-ink-faint">
           {data.signalCount} signal{data.signalCount === 1 ? '' : 's'} recorded
         </p>
       )}
@@ -546,7 +550,7 @@ function LearnedPreferencesSection({
       {/* Advanced */}
       <button
         onClick={() => setShowAdvanced((v) => !v)}
-        className="mt-3 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+        className="mt-3 flex items-center gap-1 text-xs text-ink-muted hover:text-ink-soft"
       >
         <span>{showAdvanced ? '▾' : '▸'}</span>
         <span>Advanced</span>
@@ -554,10 +558,10 @@ function LearnedPreferencesSection({
       {showAdvanced ? (
         <div className="mt-2 space-y-2">
           <div>
-            <label className="mb-1.5 block text-xs text-gray-500 dark:text-gray-400">
+            <label className="mb-1.5 block text-xs text-ink-muted">
               Learning strength
             </label>
-            <div className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-800">
+            <div className="flex gap-1 rounded-xl bg-well p-1">
               {([
                 { label: 'Low',    value: 0.1 },
                 { label: 'Medium', value: 0.3 },
@@ -570,8 +574,8 @@ function LearnedPreferencesSection({
                     onClick={() => onPreferenceWeightChange(opt.value)}
                     className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-all ${
                       isActive
-                        ? 'bg-white text-slate-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
-                        : 'text-gray-500 dark:text-gray-400'
+                        ? 'bg-raised text-ink shadow-card'
+                        : 'text-ink-muted'
                     }`}
                   >
                     {opt.label}
@@ -579,7 +583,7 @@ function LearnedPreferencesSection({
                 )
               })}
             </div>
-            <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
+            <p className="mt-1 text-[10px] text-ink-muted">
               How much your feedback shapes future briefings.
             </p>
           </div>
@@ -590,7 +594,7 @@ function LearnedPreferencesSection({
       {hasAnyData && !showConfirmAll && (
         <button
           onClick={() => setShowConfirmAll(true)}
-          className="mt-3 text-xs text-gray-400 underline-offset-2 hover:text-red-500 hover:underline dark:text-gray-500"
+          className="mt-3 text-xs text-ink-muted underline-offset-2 hover:text-red-500 hover:underline"
         >
           Reset all learned preferences
         </button>
@@ -610,7 +614,7 @@ function LearnedPreferencesSection({
             </button>
             <button
               onClick={() => setShowConfirmAll(false)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+              className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-well/60"
             >
               Cancel
             </button>
@@ -629,27 +633,27 @@ const REFRESH_OPTIONS = [
 ]
 
 const CATEGORY_OPTIONS = [
-  { id: 'technology', label: 'Tech & AI',         emoji: '🤖' },
-  { id: 'science',    label: 'Science & Health',   emoji: '🧪' },
-  { id: 'business',   label: 'Business',            emoji: '📊' },
-  { id: 'world',      label: 'World',               emoji: '🌍' },
-  { id: 'positive',   label: 'Bright Spots',        emoji: '✨' },
+  { id: 'technology', label: 'Tech & AI' },
+  { id: 'science',    label: 'Science & Health' },
+  { id: 'business',   label: 'Business' },
+  { id: 'world',      label: 'World' },
+  { id: 'positive',   label: 'Bright Spots' },
 ]
 
-const MOOD_PRESETS: { value: MoodPreset; emoji: string; label: string; desc: string }[] = [
-  { value: 'balanced',     emoji: '⚖️', label: 'Balanced',     desc: '40% uplifting · 40% neutral · 20% in-focus' },
-  { value: 'constructive', emoji: '🌱', label: 'Constructive',  desc: '60% uplifting · 35% neutral · 5% in-focus' },
-  { value: 'hard-news',    emoji: '📰', label: 'Hard News',     desc: '20% uplifting · 40% neutral · 40% in-focus' },
+const MOOD_PRESETS: { value: MoodPreset; label: string; desc: string }[] = [
+  { value: 'balanced',     label: 'Balanced',     desc: '40% uplifting · 40% neutral · 20% in-focus' },
+  { value: 'constructive', label: 'Constructive',  desc: '60% uplifting · 35% neutral · 5% in-focus' },
+  { value: 'hard-news',    label: 'Hard News',     desc: '20% uplifting · 40% neutral · 40% in-focus' },
 ]
 
 const SESSION_OPTIONS = [5, 10, 15, 20, 30]
 
 const SOURCE_CATEGORY_LABELS: Record<string, string> = {
-  technology: '🤖 Technology',
-  science: '🧪 Science & Health',
-  business: '📊 Business',
-  world: '🌍 World & Politics',
-  positive: '✨ Bright Spots',
+  technology: 'Technology',
+  science: 'Science & Health',
+  business: 'Business',
+  world: 'World & Politics',
+  positive: 'Bright Spots',
 }
 
 const BIAS_LABELS: Record<string, string> = {
@@ -1094,17 +1098,14 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen dark:bg-gray-950">
-      <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">Settings</h1>
-        <p className="text-xs text-gray-400 dark:text-gray-500">Customize your news experience</p>
-      </header>
+    <div className="min-h-screen">
+      <PageHeader title="Settings" subtitle="Customize your news experience" />
 
       <div className="space-y-4 px-4 py-4">
         {/* Mood Preset */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Mood Preset</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">Mood Preset</h2>
+          <p className="mb-3 text-xs text-ink-muted">
             Quick settings to match your current needs
           </p>
           <div className="space-y-2">
@@ -1112,16 +1113,24 @@ export default function SettingsPage() {
               <button
                 key={preset.value}
                 onClick={() => applyMoodPreset(preset.value)}
-                className={`flex w-full items-start gap-3 rounded-xl border-2 p-3 text-left transition-all ${
+                aria-pressed={moodPreset === preset.value}
+                className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-colors duration-200 ${
                   moodPreset === preset.value
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50'
-                    : 'border-transparent bg-gray-50 hover:border-gray-200 dark:bg-gray-800 dark:hover:border-gray-700'
+                    ? 'border-accent bg-accent-soft'
+                    : 'border-line bg-card hover:border-line-strong'
                 }`}
               >
-                <span className="mt-0.5 text-xl">{preset.emoji}</span>
+                {(() => {
+                  const Icon = MOOD_ICONS[preset.value]
+                  return (
+                    <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${moodPreset === preset.value ? 'bg-accent text-on-accent' : 'bg-well text-ink-soft'}`}>
+                      <Icon className="h-[18px] w-[18px]" />
+                    </span>
+                  )
+                })()}
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{preset.label}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{preset.desc}</p>
+                  <p className="text-sm font-semibold text-ink">{preset.label}</p>
+                  <p className="text-xs text-ink-muted">{preset.desc}</p>
                 </div>
               </button>
             ))}
@@ -1129,21 +1138,21 @@ export default function SettingsPage() {
         </section>
 
         {/* Balance Sliders */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Fine-tune Balance</h2>
-          <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">Fine-tune Balance</h2>
+          <p className="mb-4 text-xs text-ink-muted">
             Manually adjust your feed mix
           </p>
           <div className="space-y-4">
             {[
               { key: 'positive' as const, label: 'Uplifting',  value: positiveRatio, color: 'emerald', accent: 'accent-emerald-500', max: 80 },
-              { key: 'neutral'  as const, label: 'Neutral',    value: neutralRatio,  color: 'gray',    accent: 'accent-gray-500',    max: 80 },
+              { key: 'neutral'  as const, label: 'Neutral',    value: neutralRatio,  color: 'gray',    accent: 'accent-accent',    max: 80 },
               { key: 'negative' as const, label: 'In Focus',   value: negativeRatio, color: 'amber',   accent: 'accent-amber-400',   max: 60 },
             ].map(({ key, label, value, accent, max }) => (
               <div key={key}>
                 <div className="mb-1 flex justify-between text-sm">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">{label}</span>
-                  <span className="font-semibold text-gray-600 dark:text-gray-400">{value}%</span>
+                  <span className="font-medium text-ink-soft">{label}</span>
+                  <span className="font-semibold text-ink-soft">{value}%</span>
                 </div>
                 <input
                   type="range"
@@ -1151,22 +1160,22 @@ export default function SettingsPage() {
                   max={max}
                   value={value}
                   onChange={(e) => adjustRatios(key, parseInt(e.target.value))}
-                  className={`h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 dark:bg-gray-700 ${accent}`}
+                  className={`h-2 w-full cursor-pointer appearance-none rounded-full bg-well-strong ${accent}`}
                 />
               </div>
             ))}
           </div>
           <div className="mt-4 flex h-3 overflow-hidden rounded-full">
             <div className="bg-emerald-500 transition-all" style={{ width: `${positiveRatio}%` }} />
-            <div className="bg-gray-300 transition-all"   style={{ width: `${neutralRatio}%` }} />
+            <div className="bg-line-strong transition-all"   style={{ width: `${neutralRatio}%` }} />
             <div className="bg-amber-400 transition-all"  style={{ width: `${100 - positiveRatio - neutralRatio}%` }} />
           </div>
         </section>
 
         {/* Topics */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">News Topics</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">Choose which categories to follow</p>
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">News Topics</h2>
+          <p className="mb-3 text-xs text-ink-muted">Choose which categories to follow</p>
           <div className="space-y-1">
             {CATEGORY_OPTIONS.map((cat) => {
               const isEnabled = enabledCategories.includes(cat.id)
@@ -1174,13 +1183,13 @@ export default function SettingsPage() {
                 <button
                   key={cat.id}
                   onClick={() => toggleCategory(cat.id)}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-well/60"
                 >
-                  <span className="flex items-center gap-2.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <span>{cat.emoji}</span>
+                  <span className="flex items-center gap-2.5 text-sm font-medium text-ink-soft">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-well text-ink-soft"><CategoryIcon category={cat.id} className="h-4 w-4" /></span>
                     {cat.label}
                   </span>
-                  <div className={`relative h-5 w-9 rounded-full transition-colors ${isEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                  <div className={`relative h-5 w-9 rounded-full transition-colors ${isEnabled ? 'bg-accent' : 'bg-well-strong'}`}>
                     <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                   </div>
                 </button>
@@ -1190,18 +1199,18 @@ export default function SettingsPage() {
         </section>
 
         {/* News Sources */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">News Sources</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">Toggle individual sources on or off. Tap a source name for details.</p>
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">News Sources</h2>
+          <p className="mb-3 text-xs text-ink-muted">Toggle individual sources on or off. Tap a source name for details.</p>
 
           {Object.entries(sourcesByLanguage).map(([lang, categoryMap]) => (
             <div key={lang} className="mb-5 last:mb-0">
               {/* Language header */}
-              <div className="mb-2 flex items-center gap-2 border-b border-gray-100 pb-1.5 dark:border-gray-800">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+              <div className="mb-2 flex items-center gap-2 border-b border-line pb-1.5">
+                <span className="text-sm font-bold text-ink-soft">
                   {lang === 'de' ? '🇩🇪 German Sources' : '🇬🇧 English Sources'}
                 </span>
-                <span className="text-xs text-gray-400 dark:text-gray-500">
+                <span className="text-xs text-ink-muted">
                   ({Object.values(categoryMap).flat().length} sources)
                 </span>
               </div>
@@ -1217,7 +1226,7 @@ export default function SettingsPage() {
                   return (
                     <div key={categoryId}>
                       {/* Category header row */}
-                      <div className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <div className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-well/60">
                         <button
                           onClick={() => toggleGroupCollapsed(groupKey)}
                           className="flex flex-1 items-center gap-2 text-left"
@@ -1229,28 +1238,29 @@ export default function SettingsPage() {
                             fill="none"
                             stroke="currentColor"
                             strokeWidth={2}
-                            className={`h-3 w-3 flex-shrink-0 text-gray-400 transition-transform dark:text-gray-500 ${isCollapsed ? '-rotate-90' : ''}`}
+                            className={`h-3 w-3 flex-shrink-0 text-ink-muted transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
                           >
                             <path strokeLinecap="round" strokeLinejoin="round" d="m19 9-7 7-7-7" />
                           </svg>
-                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
+                            <CategoryIcon category={categoryId} className="h-3.5 w-3.5 text-ink-muted" />
                             {SOURCE_CATEGORY_LABELS[categoryId] ?? categoryId}
                           </span>
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                          <span className="text-[10px] text-ink-muted">
                             {enabledCount === total ? `${total} enabled` : `${enabledCount}/${total} enabled`}
                           </span>
                         </button>
                         <div className="flex gap-2">
                           <button
                             onClick={() => selectAllInCategory(categoryId)}
-                            className="text-[11px] text-blue-600 hover:underline"
+                            className="text-[11px] text-accent hover:underline"
                           >
                             All
                           </button>
-                          <span className="text-[11px] text-gray-300 dark:text-gray-600">·</span>
+                          <span className="text-[11px] text-ink-faint">·</span>
                           <button
                             onClick={() => deselectAllInCategory(categoryId)}
-                            className="text-[11px] text-gray-400 hover:underline dark:text-gray-500"
+                            className="text-[11px] text-ink-muted hover:underline"
                           >
                             None
                           </button>
@@ -1265,22 +1275,22 @@ export default function SettingsPage() {
                             return (
                               <div
                                 key={source.id}
-                                className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${!enabled ? 'opacity-50' : ''}`}
+                                className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-well/60 ${!enabled ? 'opacity-50' : ''}`}
                               >
-                                {/* Left: emoji + name (tappable for detail) + language badge + bias badge */}
+                                {/* Left: monogram + name (tappable for detail) + language badge + bias badge */}
                                 <div className="flex min-w-0 flex-1 items-center gap-2">
-                                  <span className="text-base leading-none">{source.logoEmoji}</span>
+                                  <SourceMark source={source.name} />
                                   <button
                                     onClick={() => setDetailSource(source)}
-                                    className="truncate text-sm font-medium text-gray-800 hover:underline focus:outline-none dark:text-gray-200"
+                                    className="truncate text-sm font-medium text-ink hover:underline focus:outline-none"
                                     aria-label={`${source.name} — tap for details`}
                                   >
                                     {source.name}
                                   </button>
-                                  <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${source.language === 'de' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                  <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${source.language === 'de' ? 'bg-accent-soft text-accent-ink' : 'bg-well text-ink-muted'}`}>
                                     {source.language.toUpperCase()}
                                   </span>
-                                  <span className="flex-shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                  <span className="flex-shrink-0 rounded bg-well px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted">
                                     {BIAS_LABELS[source.bias] ?? source.bias}
                                   </span>
                                 </div>
@@ -1291,7 +1301,7 @@ export default function SettingsPage() {
                                   aria-label={`${enabled ? 'Disable' : 'Enable'} ${source.name}`}
                                   aria-pressed={enabled}
                                 >
-                                  <div className={`relative h-5 w-9 rounded-full transition-colors ${enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                                  <div className={`relative h-5 w-9 rounded-full transition-colors ${enabled ? 'bg-accent' : 'bg-well-strong'}`}>
                                     <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                                   </div>
                                 </button>
@@ -1309,9 +1319,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Custom RSS Feeds */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Custom RSS Feeds</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">Add your own RSS or Atom feeds. They are included on every refresh.</p>
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">Custom RSS Feeds</h2>
+          <p className="mb-3 text-xs text-ink-muted">Add your own RSS or Atom feeds. They are included on every refresh.</p>
 
           {/* Add form */}
           <div className="space-y-2 mb-4">
@@ -1321,30 +1331,30 @@ export default function SettingsPage() {
                 value={customUrl}
                 onChange={(e) => setCustomUrl(e.target.value)}
                 placeholder="https://example.com/feed.xml"
-                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-600"
+                className="flex-1 rounded-lg border border-line px-3 py-2 text-sm text-ink-soft placeholder-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
               <input
                 type="text"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
                 placeholder="Source name"
-                className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-600"
+                className="w-32 rounded-lg border border-line px-3 py-2 text-sm text-ink-soft placeholder-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </div>
             <div className="flex gap-2">
               <select
                 value={customCategory}
                 onChange={(e) => setCustomCategory(e.target.value)}
-                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className="flex-1 rounded-lg border border-line px-3 py-2 text-sm text-ink-soft focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               >
                 {CATEGORY_OPTIONS.map((c) => (
-                  <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                  <option key={c.id} value={c.id}>{c.label}</option>
                 ))}
               </select>
               <button
                 onClick={addCustomSource}
                 disabled={customAdding || !customUrl.trim() || !customName.trim()}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent/90 disabled:opacity-50"
               >
                 {customAdding ? 'Adding…' : 'Add'}
               </button>
@@ -1356,27 +1366,27 @@ export default function SettingsPage() {
 
           {/* Existing custom sources */}
           {customSources.length === 0 ? (
-            <p className="text-xs text-gray-400 dark:text-gray-500">No custom feeds added yet.</p>
+            <p className="text-xs text-ink-muted">No custom feeds added yet.</p>
           ) : (
             <div className="space-y-1">
               {customSources.map((source) => (
-                <div key={source.id} className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <div key={source.id} className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-well/60">
                   <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="text-base leading-none">{source.logoEmoji}</span>
+                    <SourceMark source={source.name} />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">{source.name}</p>
-                      <p className="truncate text-[11px] font-mono text-gray-400 dark:text-gray-500">{source.url}</p>
+                      <p className="truncate text-sm font-medium text-ink">{source.name}</p>
+                      <p className="truncate text-[11px] font-mono text-ink-muted">{source.url}</p>
                     </div>
-                    <span className="flex-shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <span className="flex-shrink-0 rounded bg-well px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted">
                       {SOURCE_CATEGORY_LABELS[source.category] ?? source.category}
                     </span>
                   </div>
                   <button
                     onClick={() => removeCustomSource(source.id)}
-                    className="ml-3 flex-shrink-0 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
+                    className="ml-2 flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                     aria-label={`Remove ${source.name}`}
                   >
-                    ✕
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
                   </button>
                 </div>
               ))}
@@ -1391,25 +1401,25 @@ export default function SettingsPage() {
             onClick={() => setDetailSource(null)}
           >
             <div
-              className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900"
+              className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-3 flex items-center gap-3">
-                <span className="text-3xl">{detailSource.logoEmoji}</span>
+                <SourceMark source={detailSource.name} size="md" className="!h-11 !w-11 !rounded-xl !text-sm" />
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{detailSource.name}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{BIAS_LABELS[detailSource.bias] ?? detailSource.bias} · {detailSource.language.toUpperCase()} · {SOURCE_CATEGORY_LABELS[detailSource.category] ?? detailSource.category}</p>
+                  <h3 className="text-base font-bold text-ink">{detailSource.name}</h3>
+                  <p className="text-xs text-ink-muted">{BIAS_LABELS[detailSource.bias] ?? detailSource.bias} · {detailSource.language.toUpperCase()} · {SOURCE_CATEGORY_LABELS[detailSource.category] ?? detailSource.category}</p>
                 </div>
               </div>
               <div className="space-y-2">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">RSS Feed</p>
-                  <p className="mt-0.5 break-all text-xs text-gray-600 font-mono dark:text-gray-400">{detailSource.url}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">RSS Feed</p>
+                  <p className="mt-0.5 break-all text-xs text-ink-soft font-mono">{detailSource.url}</p>
                 </div>
               </div>
               <button
                 onClick={() => setDetailSource(null)}
-                className="mt-4 w-full rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                className="mt-4 w-full rounded-xl bg-well py-2.5 text-sm font-semibold text-ink-soft"
               >
                 Close
               </button>
@@ -1418,9 +1428,9 @@ export default function SettingsPage() {
         )}
 
         {/* Avoid Topics */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Avoid Topics</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">Avoid Topics</h2>
+          <p className="mb-3 text-xs text-ink-muted">
             Comma-separated keywords to filter out (e.g. war, celebrity, crypto)
           </p>
           <input
@@ -1428,27 +1438,27 @@ export default function SettingsPage() {
             value={avoidInput}
             onChange={(e) => setAvoidInput(e.target.value)}
             placeholder="war, celebrity gossip, crypto..."
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-600"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm text-ink-soft placeholder-ink-faint focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </section>
 
         {/* Hidden Sources */}
         {hiddenSources.length > 0 && (
-          <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-            <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Hidden Sources</h2>
-            <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+            <h2 className="headline mb-1 text-lg font-semibold">Hidden Sources</h2>
+            <p className="mb-3 text-xs text-ink-muted">
               Sources you&apos;ve hidden via article feedback
             </p>
             <div className="flex flex-wrap gap-2">
               {hiddenSources.map((source) => (
-                <span key={source} className="flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                <span key={source} className="flex items-center gap-1 rounded-full bg-well px-2.5 py-1 text-xs font-medium text-ink-soft">
                   {source}
                   <button
                     onClick={() => removeHiddenSource(source)}
-                    className="ml-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                    className="-mr-1 ml-0.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-well-strong hover:text-ink"
                     aria-label={`Unhide ${source}`}
                   >
-                    ✕
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
                   </button>
                 </span>
               ))}
@@ -1457,31 +1467,31 @@ export default function SettingsPage() {
         )}
 
         {/* Newsletter Ingestion */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Newsletter Ingestion</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">Newsletter Ingestion</h2>
+          <p className="mb-3 text-xs text-ink-muted">
             Forward newsletters to SmartBrief via a webhook. Set{' '}
-            <code className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-300">NEWSLETTER_INGEST_SECRET</code>{' '}
+            <code className="rounded bg-well px-1 font-mono text-[11px] text-ink-soft">NEWSLETTER_INGEST_SECRET</code>{' '}
             in your environment to enable this.
           </p>
           <NewsletterIngestSection />
         </section>
 
         {/* Session & Reading */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Reading Session</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">Reading Session</h2>
+          <p className="mb-3 text-xs text-ink-muted">
             Control how many stories appear in each briefing session
           </p>
           <div className="mb-4">
-            <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">Stories per session</p>
+            <p className="mb-2 text-xs font-medium text-ink-soft">Stories per session</p>
             <div className="flex gap-2">
               {SESSION_OPTIONS.map((n) => (
                 <button
                   key={n}
                   onClick={() => setSessionSize(n)}
                   className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                    sessionSize === n ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+                    sessionSize === n ? 'bg-ink text-paper' : 'bg-well text-ink-soft hover:bg-well-strong'
                   }`}
                 >
                   {n}
@@ -1490,17 +1500,18 @@ export default function SettingsPage() {
             </div>
           </div>
           <div>
-            <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">Default reading depth</p>
+            <p className="mb-2 text-xs font-medium text-ink-soft">Default reading depth</p>
             <div className="flex gap-2">
               {(['skim', 'deep'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setDepthMode(mode)}
-                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                    depthMode === mode ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+                  aria-pressed={depthMode === mode}
+                  className={`min-h-[40px] flex-1 cursor-pointer rounded-lg py-2 text-sm font-medium transition-colors ${
+                    depthMode === mode ? 'bg-ink text-paper' : 'bg-well text-ink-soft hover:bg-well-strong'
                   }`}
                 >
-                  {mode === 'skim' ? '⚡ Skim' : '📖 Deep dive'}
+                  {mode === 'skim' ? 'Skim' : 'Deep dive'}
                 </button>
               ))}
             </div>
@@ -1508,9 +1519,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Push Notifications */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Push Notifications</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">Push Notifications</h2>
+          <p className="mb-3 text-xs text-ink-muted">
             Get alerted for critical breaking news only — verified across 3+ sources. Fires rarely by design.
           </p>
           {pushPermission === 'unsupported' ? (
@@ -1522,7 +1533,7 @@ export default function SettingsPage() {
               {/* Master toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Enable push notifications</p>
+                  <p className="text-sm font-medium text-ink">Enable push notifications</p>
                   {pushPermission === 'denied' && (
                     <p className="text-xs text-red-500 mt-0.5">
                       Permission denied — re-enable in browser settings.
@@ -1533,13 +1544,13 @@ export default function SettingsPage() {
                   onClick={() => handlePushToggle(!pushEnabled)}
                   disabled={pushRegistering || pushPermission === 'denied'}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-                    pushEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                    pushEnabled ? 'bg-accent' : 'bg-well-strong'
                   }`}
                   role="switch"
                   aria-checked={pushEnabled}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-card shadow transition duration-200 ${
                       pushEnabled ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
@@ -1556,7 +1567,7 @@ export default function SettingsPage() {
                   <button
                     onClick={handlePushTest}
                     disabled={pushTesting}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                    className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-well/60 disabled:opacity-50"
                   >
                     {pushTesting ? 'Sending…' : 'Send test notification'}
                   </button>
@@ -1570,13 +1581,13 @@ export default function SettingsPage() {
 
               {/* Notification history — last 20 sent, always visible when push is supported */}
               {notifHistory.length > 0 && (
-                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-                  <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">Recent alerts</p>
+                <div className="rounded-lg bg-well/60 p-3">
+                  <p className="mb-2 text-xs font-medium text-ink-soft">Recent alerts</p>
                   <div className="space-y-2">
                     {notifHistory.slice(0, 5).map((n) => (
-                      <div key={n.id} className="text-[11px] text-gray-500 dark:text-gray-400">
-                        <p className="font-medium text-gray-700 leading-snug dark:text-gray-300">{n.body}</p>
-                        <p className="text-gray-400 dark:text-gray-500">
+                      <div key={n.id} className="text-[11px] text-ink-muted">
+                        <p className="font-medium text-ink-soft leading-snug">{n.body}</p>
+                        <p className="text-ink-muted">
                           {new Date(n.sentAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -1587,39 +1598,39 @@ export default function SettingsPage() {
 
               {/* Quiet hours — only shown when push is enabled */}
               {pushEnabled && (
-                <div className="rounded-lg bg-gray-50 p-3 space-y-2.5 dark:bg-gray-800">
+                <div className="rounded-lg bg-well/60 p-3 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Quiet hours</p>
+                    <p className="text-sm font-medium text-ink-soft">Quiet hours</p>
                     <button
                       onClick={() => setQuietHoursEnabled((v) => !v)}
                       className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                        quietHoursEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                        quietHoursEnabled ? 'bg-accent' : 'bg-well-strong'
                       }`}
                       role="switch"
                       aria-checked={quietHoursEnabled}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-card shadow transition duration-200 ${
                           quietHoursEnabled ? 'translate-x-4' : 'translate-x-0'
                         }`}
                       />
                     </button>
                   </div>
                   {quietHoursEnabled && (
-                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                      <label className="text-xs text-gray-500 w-10 dark:text-gray-400">From</label>
+                    <div className="flex items-center gap-2 text-sm text-ink-soft">
+                      <label className="text-xs text-ink-muted w-10">From</label>
                       <input
                         type="time"
                         value={quietHoursStart}
                         onChange={(e) => setQuietHoursStart(e.target.value)}
-                        className="rounded border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                        className="rounded border border-line px-2 py-1 text-xs"
                       />
-                      <label className="text-xs text-gray-500 w-6 dark:text-gray-400">to</label>
+                      <label className="text-xs text-ink-muted w-6">to</label>
                       <input
                         type="time"
                         value={quietHoursEnd}
                         onChange={(e) => setQuietHoursEnd(e.target.value)}
-                        className="rounded border border-gray-200 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                        className="rounded border border-line px-2 py-1 text-xs"
                       />
                     </div>
                   )}
@@ -1638,18 +1649,18 @@ export default function SettingsPage() {
         />
 
         {/* Auto-Refresh */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">Auto-Refresh</h2>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">How often to fetch fresh articles</p>
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">Auto-Refresh</h2>
+          <p className="mb-3 text-xs text-ink-muted">How often to fetch fresh articles</p>
           <div className="grid grid-cols-2 gap-2">
             {REFRESH_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setRefreshInterval(opt.value)}
-                className={`rounded-lg py-2.5 text-sm font-medium transition-colors ${
+                className={`min-h-[40px] cursor-pointer rounded-lg py-2.5 text-sm font-medium transition-colors ${
                   refreshInterval === opt.value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+                    ? 'bg-ink text-paper'
+                    : 'bg-well text-ink-soft hover:bg-well-strong'
                 }`}
               >
                 {opt.label}
@@ -1659,22 +1670,22 @@ export default function SettingsPage() {
         </section>
 
         {/* About */}
-        <section className="rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-          <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">About SmartBrief</h2>
-          <div className="space-y-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="mb-2 text-base font-semibold text-ink">About SmartBrief</h2>
+          <div className="space-y-2 text-xs leading-relaxed text-ink-muted">
             <p>
-              <strong className="text-gray-700 dark:text-gray-300">Sentiment Analysis</strong> — Claude Haiku reads each article to determine its emotional tone. Positive articles are discoveries, achievements, and solutions. Neutral is factual reporting. &ldquo;In Focus&rdquo; are challenging or concerning topics.
+              <strong className="text-ink-soft">Sentiment Analysis</strong> — Claude Haiku reads each article to determine its emotional tone. Positive articles are discoveries, achievements, and solutions. Neutral is factual reporting. &ldquo;In Focus&rdquo; are challenging or concerning topics.
             </p>
             <p>
-              <strong className="text-gray-700 dark:text-gray-300">Multi-source Briefs</strong> — Claude Sonnet clusters related articles from different outlets and writes balanced summaries, like Perplexity — but always with a constructive framing.
+              <strong className="text-ink-soft">Multi-source Briefs</strong> — Claude Sonnet clusters related articles from different outlets and writes balanced summaries, like Perplexity — but always with a constructive framing.
             </p>
             <p>
-              <strong className="text-gray-700 dark:text-gray-300">Session Mode</strong> — Your feed is a finite briefing, not an infinite scroll. When you&apos;ve read your session, you&apos;re done for now. This is intentional.
+              <strong className="text-ink-soft">Session Mode</strong> — Your feed is a finite briefing, not an infinite scroll. When you&apos;ve read your session, you&apos;re done for now. This is intentional.
             </p>
             <p>
-              <strong className="text-gray-700 dark:text-gray-300">Privacy</strong> — All data stays local on your device (SQLite). No tracking, no ads, no engagement optimization. Your mental health is the metric.
+              <strong className="text-ink-soft">Privacy</strong> — All data stays local on your device (SQLite). No tracking, no ads, no engagement optimization. Your mental health is the metric.
             </p>
-            <p className="text-gray-400 dark:text-gray-500">SmartBrief v0.1.0 · Powered by Anthropic Claude</p>
+            <p className="text-ink-muted">SmartBrief v0.1.0 · Powered by Anthropic Claude</p>
           </div>
         </section>
 
@@ -1685,12 +1696,12 @@ export default function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-60"
+          className="flex min-h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-ink py-3.5 text-sm font-semibold text-paper shadow-card transition-colors hover:bg-ink/85 disabled:opacity-60"
         >
           {isSaving ? (
             <><LoadingSpinner size="sm" />Saving...</>
           ) : saved ? (
-            '✓ Saved!'
+            'Saved'
           ) : (
             'Save Preferences'
           )}
@@ -1698,10 +1709,10 @@ export default function SettingsPage() {
 
         {/* Sign out */}
         <div className="pt-2">
-          <div className="mb-4 border-t border-gray-100 dark:border-gray-800" />
+          <div className="mb-4 border-t border-line" />
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center justify-center rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="flex w-full items-center justify-center rounded-xl border border-line py-3 text-sm font-medium text-ink-soft transition-colors hover:bg-well/60"
           >
             Sign out
           </button>

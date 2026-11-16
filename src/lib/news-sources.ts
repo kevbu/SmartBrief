@@ -171,7 +171,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     id: 'positive',
-    label: '✨ Bright Spots',
+    label: 'Bright Spots',
     emoji: '✨',
     description: 'Uplifting and positive news',
   },

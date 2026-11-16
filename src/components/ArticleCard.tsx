@@ -8,7 +8,7 @@ import type { Article, DepthMode, FeedbackType } from '@/types'
 import SentimentBadge from './SentimentBadge'
 import BiasBadge from './BiasBadge'
 import FeedbackMenu from './FeedbackMenu'
-import { getEmojiForSource } from '@/lib/news-sources'
+import SourceMark from './SourceMark'
 
 const SKIP_VISIBILITY_MS = 3000
 
@@ -175,15 +175,15 @@ export default function ArticleCard({
   if (collapsed) {
     return (
       <article
-        className="mx-4 mb-1.5 flex cursor-pointer items-center gap-2 rounded-2xl bg-white px-4 py-3 opacity-40 ring-1 ring-slate-100 transition-all active:scale-[0.99] dark:bg-slate-900 dark:ring-slate-800"
+        className="mx-4 mb-2 flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-line-strong px-4 py-3 opacity-70 transition-opacity hover:opacity-100"
         onClick={handleClick}
         aria-label="Off-topic story — tap to expand"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5 flex-shrink-0 text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5 flex-shrink-0 text-ink-muted">
           <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
         </svg>
-        <p className="min-w-0 flex-1 truncate text-xs text-slate-400">{article.title}</p>
-        <span className="flex-shrink-0 text-[10px] text-slate-300 dark:text-slate-600">tap to expand</span>
+        <p className="min-w-0 flex-1 truncate text-xs text-ink-muted">{article.title}</p>
+        <span className="flex-shrink-0 text-[10px] text-ink-faint">tap to expand</span>
       </article>
     )
   }
@@ -200,9 +200,17 @@ export default function ArticleCard({
     <article
       ref={cardRef}
       className={clsx(
-        'mx-4 mb-2 cursor-pointer rounded-2xl bg-white p-4 ring-1 ring-slate-100 transition-all active:scale-[0.99] hover:ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 dark:hover:ring-slate-700',
-        isRead && 'opacity-55'
+        'mx-4 mb-3 cursor-pointer rounded-2xl border border-line bg-card p-4 shadow-card transition-[border-color,box-shadow,opacity] duration-200 hover:border-line-strong hover:shadow-lift',
+        isRead && 'opacity-60'
       )}
+      tabIndex={0}
+      aria-label={article.title}
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault()
+          handleClick()
+        }
+      }}
       onClick={handleClick}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
@@ -214,46 +222,46 @@ export default function ArticleCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {/* Source row */}
-          <div className="mb-1.5 flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
-            <span>{article.url.startsWith('newsletter://') ? '✉️' : getEmojiForSource(article.source)}</span>
-            <span className="font-medium text-slate-600 dark:text-slate-400">{article.source}</span>
+          <div className="mb-1.5 flex items-center gap-1.5 text-xs text-ink-muted">
+            <SourceMark source={article.source} newsletter={article.url.startsWith('newsletter://')} />
+            <span className="truncate font-semibold text-ink-soft">{article.source}</span>
             {article.url.startsWith('newsletter://') && (
-              <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-500 dark:bg-indigo-900/40 dark:text-indigo-400">
+              <span className="eyebrow rounded bg-accent-soft px-1.5 py-0.5 !text-[10px] text-accent-ink">
                 newsletter
               </span>
             )}
             <BiasBadge source={article.source} />
-            <span>·</span>
-            <span>{timeAgo}</span>
+            <span aria-hidden="true" className="text-ink-faint">·</span>
+            <span className="flex-shrink-0">{timeAgo}</span>
           </div>
 
           {/* Title */}
-          <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">
+          <h3 className="headline mb-1.5 line-clamp-2 text-[17px] font-semibold leading-[1.3]">
             {article.title}
           </h3>
 
           {/* Description / AI Summary */}
           {displayText && (
-            <p className={clsx('text-xs leading-relaxed text-slate-600 dark:text-slate-400', textClamp)}>
+            <p className={clsx('text-[13px] leading-relaxed text-ink-soft', textClamp)}>
               {displayText}
             </p>
           )}
 
           {/* Why am I seeing this? */}
           {depthMode === 'deep' ? (
-            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-600">
-              <span>✦</span>
+            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-ink-muted">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3 flex-shrink-0 text-accent" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z" /></svg>
               <span>{article.reason ?? `From ${article.source} · ${article.category} · ${article.sentiment} tone`}</span>
             </p>
           ) : article.reason && reasonVisible ? (
-            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
-              <span>✦</span>
+            <p className="mt-1.5 flex items-center gap-1 text-[10px] text-ink-muted">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3 flex-shrink-0 text-accent" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9z" /></svg>
               <span>{shortenReason(article.reason)}</span>
             </p>
           ) : null}
 
           {/* Footer */}
-          <div className="mt-2.5 flex items-center justify-between">
+          <div className="-mb-2 -mr-2 mt-1.5 flex items-center justify-between">
             <SentimentBadge sentiment={article.sentiment} />
             <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
               <FeedbackMenu
@@ -268,18 +276,19 @@ export default function ArticleCard({
                 className={clsx(
                   'flex h-11 w-11 cursor-pointer items-center justify-center rounded-full transition-colors',
                   isSaved
-                    ? 'text-blue-500'
-                    : 'text-slate-300 hover:text-slate-400 dark:text-slate-600 dark:hover:text-slate-500'
+                    ? 'text-accent hover:bg-well'
+                    : 'text-ink-muted hover:bg-well hover:text-ink'
                 )}
                 aria-label={isSaved ? 'Remove bookmark' : 'Bookmark article'}
+                aria-pressed={isSaved}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill={isSaved ? 'currentColor' : 'none'}
                   stroke="currentColor"
-                  strokeWidth={1.5}
-                  className="h-5 w-5"
+                  strokeWidth={1.75}
+                  className="h-[18px] w-[18px]"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
                 </svg>
@@ -290,7 +299,7 @@ export default function ArticleCard({
 
         {/* Thumbnail */}
         {article.imageUrl && (
-          <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl">
+          <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-well ring-1 ring-inset ring-line">
             <Image
               src={article.imageUrl}
               alt=""

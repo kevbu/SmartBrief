@@ -41,9 +41,15 @@ const PRESETS: { value: MoodPreset; label: string; icon: React.FC<{ className?: 
   { value: 'hard-news',    label: 'Hard News',     icon: NewspaperIcon,title: '20% uplifting · 40% neutral · 40% in-focus' },
 ]
 
+export const MOOD_ICONS: Record<MoodPreset, React.FC<{ className?: string }>> = {
+  balanced: ScaleIcon,
+  constructive: LeafIcon,
+  'hard-news': NewspaperIcon,
+}
+
 export default function MoodPresetToggle({ value, onChange, disabled }: MoodPresetToggleProps) {
   return (
-    <div className="flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+    <div className="flex gap-1 rounded-xl bg-well p-1">
       {PRESETS.map((preset) => {
         const Icon = preset.icon
         return (
@@ -52,11 +58,12 @@ export default function MoodPresetToggle({ value, onChange, disabled }: MoodPres
             onClick={() => onChange(preset.value)}
             disabled={disabled}
             title={preset.title}
+            aria-pressed={value === preset.value}
             className={clsx(
-              'flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-all disabled:opacity-50',
+              'flex min-h-[36px] flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-colors duration-200 disabled:opacity-50',
               value === preset.value
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
-                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                ? 'bg-raised text-ink shadow-card'
+                : 'text-ink-muted hover:text-ink-soft'
             )}
           >
             <Icon className="h-3.5 w-3.5" />

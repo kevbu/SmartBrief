@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import ArticleCard from '@/components/ArticleCard'
 import ArticleDetail from '@/components/ArticleDetail'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import PageHeader, { EmptyState, EmptyIcons } from '@/components/PageHeader'
 import type { Article } from '@/types'
 
 type SelectedItem =
@@ -43,30 +44,21 @@ export default function SavedPage() {
 
   return (
     <div>
-      <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-gray-100">Saved</h1>
-        <p className="text-xs text-gray-400 dark:text-gray-500">Your bookmarked articles</p>
-      </header>
+      <PageHeader
+        title="Saved"
+        subtitle={isLoading || articles.length === 0 ? 'Your bookmarked articles' : `${articles.length} saved ${articles.length === 1 ? 'article' : 'articles'}`}
+      />
 
       {isLoading ? (
-        <div className="flex justify-center py-12">
+        <div className="flex justify-center py-12 text-ink-muted">
           <LoadingSpinner />
         </div>
       ) : articles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center px-8">
-          <span className="mb-4 text-5xl">🔖</span>
-          <p className="text-base font-semibold text-gray-700 dark:text-gray-300">
-            No saved articles yet
-          </p>
-          <p className="mt-2 text-sm text-gray-400 dark:text-gray-500">
-            Tap the bookmark icon on any article to save it here for later
-          </p>
-        </div>
+        <EmptyState icon={EmptyIcons.bookmark} title="Nothing saved yet">
+          Tap the bookmark on any story to keep it here for later.
+        </EmptyState>
       ) : (
         <div className="pt-4">
-          <p className="mb-3 px-4 text-xs text-gray-400 dark:text-gray-500">
-            {articles.length} saved {articles.length === 1 ? 'article' : 'articles'}
-          </p>
           {articles.map((article) => (
             <ArticleCard
               key={article.id}

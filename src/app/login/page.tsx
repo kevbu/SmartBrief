@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { BrandMark } from '@/components/Header'
 
 export default function LoginPage() {
   const [password, setPassword] = useState('')
@@ -30,18 +31,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg dark:bg-gray-900">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-gray-100">SmartBrief</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Your personal news briefing</p>
+    <div className="flex min-h-screen items-center justify-center bg-paper px-4">
+      <div className="w-full max-w-sm rounded-3xl border border-line bg-card p-8 shadow-lift">
+        <div className="mb-7 flex flex-col items-center text-center">
+          <BrandMark className="mb-4 h-11 w-11 !text-[26px]" />
+          <h1 className="headline text-[28px] font-semibold leading-none">SmartBrief</h1>
+          <p className="mt-2 text-sm text-ink-muted">Your personal news briefing</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label
               htmlFor="password"
-              className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              className="mb-1.5 block text-sm font-medium text-ink-soft"
             >
               Password
             </label>
@@ -52,13 +54,13 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoFocus
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-600 dark:focus:border-gray-500 dark:focus:ring-gray-500"
+              className="w-full rounded-xl border border-line bg-paper px-3.5 py-3 text-base text-ink placeholder-ink-faint transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 sm:text-sm"
               placeholder="Enter your password"
             />
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+            <div role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
               {error}
             </div>
           )}
@@ -66,7 +68,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !password}
-            className="flex w-full items-center justify-center rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-60"
+            className="flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-full bg-ink py-3 text-sm font-semibold text-paper transition-colors hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>

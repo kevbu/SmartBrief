@@ -30,8 +30,8 @@ export default function TopicTabs({
             className={clsx(
               'flex-shrink-0 cursor-pointer rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all',
               isActive
-                ? 'bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
+                ? 'bg-ink text-paper shadow-sm'
+                : 'bg-well text-ink-soft hover:bg-well-strong'
             )}
           >
             {cat.label}

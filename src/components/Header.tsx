@@ -19,11 +19,26 @@ function formatLastRefreshed(dateStr: string | null): string {
   const diffMs = now.getTime() - date.getTime()
   const diffMins = Math.floor(diffMs / 60000)
 
-  if (diffMins < 1) return 'Just now'
-  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffMins < 1) return 'Updated just now'
+  if (diffMins < 60) return `Updated ${diffMins}m ago`
   const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours}h ago`
-  return 'Yesterday'
+  if (diffHours < 24) return `Updated ${diffHours}h ago`
+  return 'Updated yesterday'
+}
+
+function formatToday(): string {
+  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+
+export function BrandMark({ className = 'h-8 w-8' }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex flex-shrink-0 items-center justify-center rounded-[10px] bg-ink font-serif text-[19px] font-semibold italic leading-none text-paper ${className}`}
+    >
+      S
+    </span>
+  )
 }
 
 export default function Header({
@@ -34,34 +49,31 @@ export default function Header({
   onMoodChange,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-950/95">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500 shadow-sm shadow-blue-500/30">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-white">
-              <path fillRule="evenodd" d="M4.125 3C3.089 3 2.25 3.84 2.25 4.875V18a3 3 0 0 0 3 3h15a3 3 0 0 1-3-3V4.875C17.25 3.839 16.41 3 15.375 3H4.125ZM12 9.75a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5H12Zm-.75-2.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H12a.75.75 0 0 1-.75-.75ZM6 12.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5H6Zm-.75 3.75a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75ZM6 6.75a.75.75 0 0 0-.75.75v3c0 .414.336.75.75.75h3a.75.75 0 0 0 .75-.75v-3A.75.75 0 0 0 9 6.75H6Z" clipRule="evenodd" />
-              <path d="M18.75 6.75h1.875c.621 0 1.125.504 1.125 1.125V18a1.5 1.5 0 0 1-3 0V6.75Z" />
-            </svg>
-          </div>
-          <div>
-            <h1 className="text-[17px] font-bold tracking-tight text-slate-900 dark:text-slate-100">SmartBrief</h1>
-            <div className="flex items-center gap-1.5">
+    <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur-md">
+      <div className="flex items-center justify-between px-4 pb-3 pt-3.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <BrandMark />
+          <div className="min-w-0">
+            <h1 className="headline text-[22px] font-semibold leading-none">SmartBrief</h1>
+            <p className="mt-1 flex items-center gap-1.5 truncate text-[11px] text-ink-muted">
+              <span suppressHydrationWarning>{formatToday()}</span>
+              <span aria-hidden="true" className="text-ink-faint">·</span>
               {isRefreshing ? (
-                <span className="text-[11px] text-slate-400 dark:text-slate-500">Refreshing…</span>
+                <span>Refreshing…</span>
               ) : (
-                <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[11px] text-slate-400 dark:text-slate-500">{formatLastRefreshed(lastRefreshed)}</span>
-                </>
+                <span className="flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-positive" aria-hidden="true" />
+                  {formatLastRefreshed(lastRefreshed)}
+                </span>
               )}
-            </div>
+            </p>
           </div>
         </div>
 
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+          className="flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-full border border-line bg-card text-ink-soft shadow-card transition-colors hover:border-line-strong hover:text-ink disabled:opacity-50"
           aria-label="Refresh news"
         >
           {isRefreshing ? (

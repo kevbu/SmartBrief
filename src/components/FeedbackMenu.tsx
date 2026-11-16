@@ -108,13 +108,13 @@ export default function FeedbackMenu({
       {/* Trigger */}
       <button
         onClick={handleTrigger}
-        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-500 active:bg-slate-100 dark:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-400"
+        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-well hover:text-ink active:bg-well"
         aria-label="Article feedback"
         aria-expanded={open}
         aria-haspopup="menu"
       >
         {confirmed ? (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4 text-emerald-500">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4 text-positive">
             <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
           </svg>
         ) : (
@@ -128,10 +128,10 @@ export default function FeedbackMenu({
       {showTooltip && !open && (
         <div
           role="tooltip"
-          className="pointer-events-none absolute bottom-full right-0 mb-2 w-48 rounded-xl bg-slate-900 px-3 py-2 text-xs leading-snug text-white shadow-lg"
+          className="pointer-events-none absolute bottom-full right-0 mb-2 w-48 rounded-xl bg-ink px-3 py-2 text-xs leading-snug text-paper shadow-lg"
         >
           Tell us what you think of this story
-          <div className="absolute -bottom-1 right-4 h-2 w-2 rotate-45 bg-slate-900" />
+          <div className="absolute -bottom-1 right-4 h-2 w-2 rotate-45 bg-ink" />
         </div>
       )}
 
@@ -139,10 +139,10 @@ export default function FeedbackMenu({
       {open && (
         <div
           role="menu"
-          className={`absolute ${placement === 'left' ? 'left-0' : 'right-0'} z-30 mt-1 w-52 rounded-2xl border border-slate-100 bg-white py-1.5 shadow-xl shadow-slate-200/50 dark:border-slate-700/60 dark:bg-slate-900 dark:shadow-none`}
+          className={`absolute ${placement === 'left' ? 'left-0' : 'right-0'} z-30 mt-1 w-52 rounded-2xl border border-line bg-card py-1.5 shadow-lift`}
           onClick={(e) => e.stopPropagation()}
         >
-          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <p className="eyebrow px-3 py-1.5 !text-[10px] text-ink-muted">
             Tune your feed
           </p>
           {visibleOptions.map((opt) => {
@@ -152,9 +152,9 @@ export default function FeedbackMenu({
                 key={opt.value}
                 role="menuitem"
                 onClick={() => handleFeedback(opt.value)}
-                className="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="flex min-h-[40px] w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-well hover:text-ink"
               >
-                <span className="text-slate-400 dark:text-slate-500"><Icon /></span>
+                <span className="text-ink-muted"><Icon /></span>
                 {opt.label}
               </button>
             )
