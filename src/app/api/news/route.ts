@@ -6,6 +6,7 @@ import { applyDecayAndGetWeightMap, effectiveNegativeRatio } from '@/lib/source-
 import { applyDecayAndGetTopicWeightMap } from '@/lib/topic-weights'
 import { scoreByImportance } from '@/lib/importance-score'
 import { isAiAvailable } from '@/lib/claude-analyzer'
+import { selectCurrentBatch, toTopStory } from '@/lib/top-stories'
 import type { Article, TopStory, UserPreferences, NewsApiResponse, MoodPreset, DepthMode } from '@/types'
 
 export async function GET(request: Request) {
@@ -134,27 +135,8 @@ export async function GET(request: Request) {
     // Get balance stats from ALL articles (not filtered by category)
     const balanceStats = computeBalanceStats(articles)
 
-    const topStories: TopStory[] = topStoriesDb
-      .map((ts) => ({
-        id: ts.id,
-        title: ts.title,
-        summary: ts.summary,
-        category: ts.category,
-        articleIds: (() => {
-          try { return JSON.parse(ts.articleIds) as string[] } catch { return [] }
-        })(),
-        sources: (() => {
-          try { return JSON.parse(ts.sources) as string[] } catch { return [] }
-        })(),
-        bullets: (() => {
-          try { return ts.bullets ? JSON.parse(ts.bullets) as string[] : undefined } catch { return undefined }
-        })(),
-        clusterArticles: (() => {
-          try { return ts.clusterArticles ? JSON.parse(ts.clusterArticles) as Array<{ title: string; source: string; url: string }> : undefined } catch { return undefined }
-        })(),
-        sentiment: ts.sentiment as 'positive' | 'neutral' | 'negative',
-        createdAt: ts.createdAt,
-      }))
+    const topStories: TopStory[] = selectCurrentBatch(topStoriesDb)
+      .map(toTopStory)
       .sort((a, b) => b.sources.length - a.sources.length)
 
     const hasApiKey = isAiAvailable()

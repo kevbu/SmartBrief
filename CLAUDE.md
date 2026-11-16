@@ -43,7 +43,7 @@ POST /api/news/refresh
       2. db.article.upsert per URL          — dedup by URL
       3. claude-analyzer.analyzeSentiment() — Haiku 4.5, batches of 20
       4. claude-analyzer.generateTopStories() — Sonnet 4.6, 12-hour window
-      5. db.topStory.deleteMany + createMany — replaces all clusters each refresh
+      5. db.topStory.deleteMany(unsaved) + createMany — replaces unsaved clusters each refresh
   → piggybacked (fire-and-forget): IMAP poll + breaking-news detection
 ```
 
@@ -87,7 +87,7 @@ Optional password protection via `SMARTBRIEF_PASSWORD` env var. `POST /api/auth/
 `src/lib/breaking-news-detector.ts` runs on a 5-minute cadence (piggybacked on refresh). Groups articles by title-similarity (Jaccard distance on tokens, threshold 0.2) and pushes Web Push notifications for critical-severity clusters.
 
 ### Database
-SQLite file at `DATABASE_URL` (default: `file:/app/data/smartbrief.db` in Docker). Key models: `Article`, `TopStory`, `UserPreferences` (single row, id=`"default"`), `SourceWeight`, `TopicWeight`, `FeedbackSignal`, `ArticleFeedback`. `AppState` tracks last-refreshed timestamps and VAPID keys.
+SQLite file at `DATABASE_URL`. Local launchd setup: `~/Library/Application Support/smartbrief/smartbrief.db`, outside the checkout (move an existing `prisma/dev.db` there once with `scripts/migrate-db-location.sh`, `--dry-run` first). Docker: `file:/app/data/smartbrief.db`. `deploy-local.sh` writes a `sqlite3 .backup` copy to `<db dir>/backups/` before every deploy and keeps the newest 10 (`SMARTBRIEF_BACKUP_KEEP`). Key models: `Article`, `TopStory`, `UserPreferences` (single row, id=`"default"`), `SourceWeight`, `TopicWeight`, `FeedbackSignal`, `ArticleFeedback`. `AppState` tracks last-refreshed timestamps and VAPID keys.
 
 ### Deployment
 Local only. The app runs as the launchd agent `com.kevbu.smartbrief` (`~/Library/LaunchAgents/com.kevbu.smartbrief.plist`): `next start -p 3000` on a production build in the main checkout. Logs go to `~/Library/Logs/smartbrief.log`.
@@ -99,7 +99,7 @@ There is no CI/CD pipeline. The former GitHub Actions → GHCR → Watchtower de
 ## Key conventions
 
 - **All preferences live in a single DB row** (`UserPreferences` id=`"default"`). Arrays (categories, sources, topics) are stored as comma-separated strings and parsed/serialized at the API boundary.
-- **TopStories are ephemeral** — `deleteMany` + `createMany` on every refresh. Don't store business logic that depends on TopStory persistence across refreshes (except the `saved` flag).
+- **TopStories are ephemeral** — each refresh deletes unsaved clusters and creates a new batch with one shared `createdAt`. Saved clusters survive. The feed shows only the newest batch (`selectCurrentBatch` in `src/lib/top-stories.ts`); `/saved` reads `GET /api/saved`. Don't store business logic that depends on unsaved TopStory persistence across refreshes.
 - **`src/lib/db.ts`** exports a singleton `db` (Prisma client). Use this everywhere; don't instantiate PrismaClient directly.
 - **No test infrastructure beyond the one file** (`importance-score.test.ts`). New logic worth testing follows the same pattern: pure function + Jest.
 - **Balance filtering happens server-side** in `applyBalanceFilter()`, not in the client. The ratios come from `UserPreferences.positiveRatio/neutralRatio/negativeRatio`.

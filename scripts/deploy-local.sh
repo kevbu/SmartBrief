@@ -55,6 +55,18 @@ fi
 
 changed() { [[ "$old_head" != "$new_head" ]] && ! git diff --quiet "$old_head" "$new_head" -- "$@"; }
 
+# Note: `git pull` above replaces this file, but the running bash keeps the old
+# copy open. Changes to this script take effect from the deploy after they land.
+step "Backing up database"
+# Consistent sqlite3 .backup into <db dir>/backups, newest SMARTBRIEF_BACKUP_KEEP (10) kept.
+# shellcheck source=lib/db-path.sh
+source "$REPO_DIR/scripts/lib/db-path.sh"
+if db_file="$(db_path "$REPO_DIR")"; then
+  backup_db "$db_file" "${SMARTBRIEF_BACKUP_KEEP:-10}"
+else
+  echo "⚠ Could not resolve DATABASE_URL from .env.local/.env, skipping backup" >&2
+fi
+
 if changed package.json package-lock.json; then
   step "Dependencies changed: npm ci"
   npm ci
