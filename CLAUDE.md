@@ -9,6 +9,7 @@ workflow-dir: _workflow
 lint-cmd: npx tsc --noEmit
 test-cmd: node --experimental-vm-modules node_modules/.bin/jest src/lib/importance-score.test.ts
 build-cmd: npm run build
+deploy-cmd: npm run deploy:local
 branch-prefix: feature/
 base-branch: main
 ```
@@ -20,6 +21,7 @@ npm run dev          # Start dev server (http://localhost:3000)
 npm run build        # prisma generate + next build
 npm run db:push      # Apply schema changes to SQLite (run after editing prisma/schema.prisma)
 npm run db:studio    # Open Prisma Studio GUI
+npm run deploy:local # Pull main, build, restart the local launchd service
 
 # Run the single test file
 node --experimental-vm-modules node_modules/.bin/jest src/lib/importance-score.test.ts
@@ -88,7 +90,11 @@ Optional password protection via `SMARTBRIEF_PASSWORD` env var. `POST /api/auth/
 SQLite file at `DATABASE_URL` (default: `file:/app/data/smartbrief.db` in Docker). Key models: `Article`, `TopStory`, `UserPreferences` (single row, id=`"default"`), `SourceWeight`, `TopicWeight`, `FeedbackSignal`, `ArticleFeedback`. `AppState` tracks last-refreshed timestamps and VAPID keys.
 
 ### Deployment
-GitHub Actions (`.github/workflows/docker-publish.yml`) builds and pushes to `ghcr.io/kevbu/smartbrief:latest` on every push to `main`. Watchtower on the VPS polls GHCR every 5 minutes and auto-updates the running container. The container entrypoint runs `npx prisma db push && npm start` — schema migrations happen automatically on deploy.
+Local only. The app runs as the launchd agent `com.kevbu.smartbrief` (`~/Library/LaunchAgents/com.kevbu.smartbrief.plist`): `next start -p 3000` on a production build in the main checkout. Logs go to `~/Library/Logs/smartbrief.log`.
+
+After merging to `main`, run `npm run deploy:local` (`scripts/deploy-local.sh`). It pulls `main`, runs `npm ci` / `prisma db push` only if dependencies or schema changed, builds, restarts the agent and checks the server responds. Use `--force` to rebuild without new commits.
+
+There is no CI/CD pipeline. The former GitHub Actions → GHCR → Watchtower deploy was removed. `Dockerfile` and `docker-compose.yml` remain for manual container builds only.
 
 ## Key conventions
 
