@@ -6,6 +6,7 @@ import PageHeader from '@/components/PageHeader'
 import CategoryIcon from '@/components/CategoryIcon'
 import SourceMark from '@/components/SourceMark'
 import { MOOD_ICONS } from '@/components/MoodPresetToggle'
+import ThemeToggle from '@/components/ThemeToggle'
 import type { UserPreferences, MoodPreset, CustomSource } from '@/types'
 import { NEWS_SOURCES } from '@/lib/news-sources'
 
@@ -1102,6 +1103,15 @@ export default function SettingsPage() {
       <PageHeader title="Settings" subtitle="Customize your news experience" />
 
       <div className="space-y-4 px-4 py-4">
+        {/* Appearance */}
+        <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
+          <h2 className="headline mb-1 text-lg font-semibold">Appearance</h2>
+          <p className="mb-3 text-xs text-ink-muted">
+            Light, dark, or follow your device. Saved on this device only.
+          </p>
+          <ThemeToggle />
+        </section>
+
         {/* Mood Preset */}
         <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
           <h2 className="headline mb-1 text-lg font-semibold">Mood Preset</h2>

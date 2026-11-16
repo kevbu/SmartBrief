@@ -2,9 +2,11 @@ import type { Config } from 'tailwindcss'
 
 // Semantic colour tokens resolve to CSS variables (see globals.css), so light and
 // dark themes swap automatically and components rarely need `dark:` variants.
+// Dark mode keys off <html data-theme="dark">, set by the theme script in layout.tsx.
 const token = (name: string) => `rgb(var(--${name}) / <alpha-value>)`
 
 const config: Config = {
+  darkMode: ['selector', '[data-theme="dark"]'],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
