@@ -10,6 +10,8 @@ lint-cmd: npx tsc --noEmit
 test-cmd: npm test
 build-cmd: npm run build
 deploy-cmd: npm run deploy:local
+e2e-cmd: npm run e2e
+e2e-framework: playwright
 branch-prefix: feature/
 base-branch: main
 ```
@@ -24,6 +26,7 @@ npm run db:studio    # Open Prisma Studio GUI
 npm run deploy:local # Pull main, build, restart the local launchd service
 
 npm test             # Run all unit tests (Vitest, src/**/*.test.ts)
+npm run e2e          # Playwright (Chromium) on its own next dev at :3103 with a throwaway DB (prisma/e2e.db)
 ```
 
 No lint or format scripts are configured; TypeScript type-checking is via `tsc --noEmit` (included in the build).

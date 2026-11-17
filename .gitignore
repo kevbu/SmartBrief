@@ -47,3 +47,7 @@ prisma/*.db-journal
 
 # Docker data volume
 /data/
+
+# Playwright e2e
+/test-results/
+/playwright-report/
