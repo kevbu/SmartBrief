@@ -13,7 +13,8 @@
     "analyze": "ANALYZE=true next build",
     "perf": "lighthouse http://localhost:3000 --output=html --output-path=./docs/lighthouse-report.html --disable-storage-reset",
     "perf:json": "lighthouse http://localhost:3000 --output=json --output-path=./docs/lighthouse-report.json --disable-storage-reset",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.312",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.2",
+    "@playwright/test": "^1.65.1",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^20.16.0",
     "@types/node-cron": "^3.0.11",
