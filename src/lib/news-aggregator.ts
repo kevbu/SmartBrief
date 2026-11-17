@@ -225,6 +225,14 @@ export async function refreshNews(): Promise<{
           where: { id: savedId },
           data: {
             ...toRowData(topStoryData[idx]),
+            // Keep the saved cluster's original articles: retention protects
+            // only ids listed here, so dropping them would lose them for good.
+            articleIds: JSON.stringify([
+              ...new Set([
+                ...topStoryData[idx].articleIds,
+                ...parseArticleIds(target?.articleIds ?? '[]'),
+              ]),
+            ]),
             // Rows saved before savedAt existed: pin their /saved position to
             // the original createdAt before the merge moves createdAt forward.
             ...(target && target.savedAt === null ? { savedAt: target.createdAt } : {}),

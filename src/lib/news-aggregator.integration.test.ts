@@ -214,7 +214,7 @@ describe('refreshNews() step 7: cluster replace and merge', () => {
 
     fetchAllFeeds.mockResolvedValue([rawArticle('n1'), rawArticle('n2')])
     generateTopStories.mockImplementation(async (articles: MockArticle[]) => [
-      cluster('Rebuilt', [r[0], r[1], r[2], r[3]]),
+      cluster('Rebuilt', [r[1], r[2], r[3]]),
       cluster('Fresh', idsByFeedKey(articles, 'n1', 'n2')),
     ])
 
@@ -228,7 +228,8 @@ describe('refreshNews() step 7: cluster replace and merge', () => {
     expect(merged.saved).toBe(true)
     expect(merged.savedAt?.getTime()).toBe(savedAt.getTime())
     expect(merged.title).toBe('Rebuilt')
-    expect(JSON.parse(merged.articleIds)).toEqual([r[0], r[1], r[2], r[3]])
+    // Original r0 stays listed, so retention keeps protecting it.
+    expect(JSON.parse(merged.articleIds)).toEqual([r[1], r[2], r[3], r[0]])
     expect(merged.createdAt.getTime()).toBeGreaterThan(saved.createdAt.getTime())
 
     const untouched = rows.find((s) => s.id === otherSaved.id)!
