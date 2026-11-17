@@ -17,9 +17,10 @@ export async function POST(
       )
     }
 
+    const nextSaved = !existing.isSaved
     const article = await db.article.update({
       where: { id },
-      data: { isSaved: !existing.isSaved },
+      data: { isSaved: nextSaved, savedAt: nextSaved ? new Date() : null },
     })
 
     const response: ArticleActionResponse = {

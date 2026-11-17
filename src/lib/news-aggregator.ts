@@ -2,6 +2,7 @@ import { db } from './db'
 import { fetchAllFeeds } from './news-fetcher'
 import { analyzeSentiment, generateTopStories } from './claude-analyzer'
 import { runSignalCleanupIfNeeded } from './topic-weights'
+import { matchRebuiltClusters, parseArticleIds } from './top-stories'
 import type { Article } from '@/types'
 
 export async function refreshNews(): Promise<{
@@ -157,26 +158,54 @@ export async function refreshNews(): Promise<{
   console.log(`Generated ${topStoryData.length} top stories [${elapsed()}]`)
 
   // 7. Replace unsaved top stories with the new batch. Saved ones survive and
-  // the shared createdAt marks the current batch for the feed.
+  // the shared createdAt marks the current batch for the feed. A new cluster
+  // that continues a saved one (strong articleIds overlap) updates that saved
+  // row instead of creating a duplicate next to it (#29). The saved row keeps
+  // its id, saved flag and savedAt, and joins the current batch.
+  // Interactive transaction: the saved-row read and the writes see the same
+  // state, so an unsave during refresh cannot drop or orphan a cluster.
   if (topStoryData.length > 0) {
     const batchCreatedAt = new Date()
-    await db.$transaction([
-      db.topStory.deleteMany({ where: { saved: false } }),
-      db.topStory.createMany({
-        data: topStoryData.map((ts) => ({
-          createdAt: batchCreatedAt,
-          title: ts.title,
-          summary: ts.summary,
-          category: ts.category,
-          articleIds: JSON.stringify(ts.articleIds),
-          sources: JSON.stringify(ts.sources),
-          sentiment: ts.sentiment,
-          bullets: JSON.stringify(ts.bullets ?? []),
-          clusterArticles: JSON.stringify(ts.clusterArticles ?? []),
-        })),
-      }),
-    ])
-    console.log(`Created ${topStoryData.length} top stories`)
+    const toRowData = (ts: (typeof topStoryData)[number]) => ({
+      createdAt: batchCreatedAt,
+      title: ts.title,
+      summary: ts.summary,
+      category: ts.category,
+      articleIds: JSON.stringify(ts.articleIds),
+      sources: JSON.stringify(ts.sources),
+      sentiment: ts.sentiment,
+      bullets: JSON.stringify(ts.bullets ?? []),
+      clusterArticles: JSON.stringify(ts.clusterArticles ?? []),
+    })
+    const { created, merged } = await db.$transaction(async (tx) => {
+      const savedRows = await tx.topStory.findMany({
+        where: { saved: true },
+        select: { id: true, articleIds: true, savedAt: true, createdAt: true },
+      })
+      const matches = matchRebuiltClusters(
+        topStoryData,
+        savedRows.map((row) => ({ id: row.id, articleIds: parseArticleIds(row.articleIds) }))
+      )
+      const savedById = new Map(savedRows.map((row) => [row.id, row]))
+
+      await tx.topStory.deleteMany({ where: { saved: false } })
+      for (const [idx, savedId] of matches) {
+        const target = savedById.get(savedId)
+        await tx.topStory.update({
+          where: { id: savedId },
+          data: {
+            ...toRowData(topStoryData[idx]),
+            // Rows saved before savedAt existed: pin their /saved position to
+            // the original createdAt before the merge moves createdAt forward.
+            ...(target && target.savedAt === null ? { savedAt: target.createdAt } : {}),
+          },
+        })
+      }
+      const unmatched = topStoryData.filter((_, idx) => !matches.has(idx))
+      await tx.topStory.createMany({ data: unmatched.map(toRowData) })
+      return { created: unmatched.length, merged: matches.size }
+    })
+    console.log(`Created ${created} top stories, merged ${merged} into saved clusters`)
   }
 
   // 8. Update AppState.lastRefreshed

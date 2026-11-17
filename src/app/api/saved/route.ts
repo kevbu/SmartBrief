@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { toTopStory } from '@/lib/top-stories'
+import { sortBySavedAt, toTopStory } from '@/lib/top-stories'
 import type { Article, SavedApiResponse } from '@/types'
 
 function toArticle(row: Awaited<ReturnType<typeof db.article.findMany>>[number]): Article {
@@ -9,9 +9,15 @@ function toArticle(row: Awaited<ReturnType<typeof db.article.findMany>>[number])
 
 export async function GET() {
   try {
+    // Most recently saved first (#30). The query order is the fallback for
+    // rows saved before savedAt existed.
     const [savedArticles, savedStories] = await Promise.all([
-      db.article.findMany({ where: { isSaved: true }, orderBy: { publishedAt: 'desc' } }),
-      db.topStory.findMany({ where: { saved: true }, orderBy: { createdAt: 'desc' } }),
+      db.article
+        .findMany({ where: { isSaved: true }, orderBy: { publishedAt: 'desc' } })
+        .then(sortBySavedAt),
+      db.topStory
+        .findMany({ where: { saved: true }, orderBy: { createdAt: 'desc' } })
+        .then(sortBySavedAt),
     ])
 
     const topStories = savedStories.map(toTopStory)

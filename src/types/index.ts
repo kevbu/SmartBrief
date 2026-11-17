@@ -21,6 +21,8 @@ export interface Article {
   aiSummary: string | null
   isRead: boolean
   isSaved: boolean
+  /** When the article was bookmarked; null when unsaved or saved before #30 */
+  savedAt?: Date | string | null
   fetchedAt: Date | string
   reason?: string
 }
@@ -37,6 +39,8 @@ export interface TopStory {
   bullets?: string[]
   clusterArticles?: Array<{ title: string; source: string; url: string }>
   saved?: boolean
+  /** When the cluster was saved; null when unsaved or saved before #30 */
+  savedAt?: Date | string | null
 }
 
 export interface UserPreferences {
