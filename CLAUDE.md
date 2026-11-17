@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 workflow-dir: _workflow
 lint-cmd: npx tsc --noEmit
-test-cmd: node --experimental-vm-modules node_modules/.bin/jest src/lib/importance-score.test.ts
+test-cmd: npm test
 build-cmd: npm run build
 deploy-cmd: npm run deploy:local
 branch-prefix: feature/
@@ -23,8 +23,7 @@ npm run db:push      # Apply schema changes to SQLite (run after editing prisma/
 npm run db:studio    # Open Prisma Studio GUI
 npm run deploy:local # Pull main, build, restart the local launchd service
 
-# Run the single test file
-node --experimental-vm-modules node_modules/.bin/jest src/lib/importance-score.test.ts
+npm test             # Run all unit tests (Vitest, src/**/*.test.ts)
 ```
 
 No lint or format scripts are configured; TypeScript type-checking is via `tsc --noEmit` (included in the build).
@@ -101,5 +100,5 @@ There is no CI/CD pipeline. The former GitHub Actions → GHCR → Watchtower de
 - **All preferences live in a single DB row** (`UserPreferences` id=`"default"`). Arrays (categories, sources, topics) are stored as comma-separated strings and parsed/serialized at the API boundary.
 - **TopStories are ephemeral** — each refresh deletes unsaved clusters and creates a new batch with one shared `createdAt`. Saved clusters survive. The feed shows only the newest batch (`selectCurrentBatch` in `src/lib/top-stories.ts`); `/saved` reads `GET /api/saved`. Don't store business logic that depends on unsaved TopStory persistence across refreshes.
 - **`src/lib/db.ts`** exports a singleton `db` (Prisma client). Use this everywhere; don't instantiate PrismaClient directly.
-- **No test infrastructure beyond the one file** (`importance-score.test.ts`). New logic worth testing follows the same pattern: pure function + Jest.
+- **Unit tests run on Vitest** (`vitest.config.ts`, jest-style globals, `@/` alias). Tests live next to the code as `src/**/*.test.ts` and are excluded from `tsc`. New logic worth testing follows the same pattern: pure function + test file.
 - **Balance filtering happens server-side** in `applyBalanceFilter()`, not in the client. The ratios come from `UserPreferences.positiveRatio/neutralRatio/negativeRatio`.

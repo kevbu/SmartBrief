@@ -12,7 +12,8 @@
     "postinstall": "prisma generate",
     "analyze": "ANALYZE=true next build",
     "perf": "lighthouse http://localhost:3000 --output=html --output-path=./docs/lighthouse-report.html --disable-storage-reset",
-    "perf:json": "lighthouse http://localhost:3000 --output=json --output-path=./docs/lighthouse-report.json --disable-storage-reset"
+    "perf:json": "lighthouse http://localhost:3000 --output=json --output-path=./docs/lighthouse-report.json --disable-storage-reset",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.312",
@@ -44,6 +45,7 @@
     "postcss": "^8.4.41",
     "prisma": "^5.19.0",
     "tailwindcss": "^3.4.10",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^3.2.7"
   }
 }

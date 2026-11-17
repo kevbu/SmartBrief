@@ -72,6 +72,7 @@ describe('scoreByImportance', () => {
     const fresh = makeArticle({ id: 'fresh', publishedAt: NOW, sentimentScore: 1.0 })
     const twoDaysAgo = makeArticle({
       id: 'old',
+      category: 'science',
       publishedAt: new Date(NOW.getTime() - 2 * 24 * 60 * 60 * 1000),
       sentimentScore: 1.0,
     })

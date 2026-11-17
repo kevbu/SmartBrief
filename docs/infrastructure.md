@@ -1,37 +1,29 @@
 # SmartBrief — Infrastructure Notes
 
-*Last updated: 2026-05-28*
+*Last updated: 2026-11-17*
 
 ---
 
 ## Current Setup
 
-**Services in `docker-compose.yml`:**
-- `app` — Next.js 16 app (serves frontend + API routes)
+SmartBrief runs locally on macOS as the launchd agent `com.kevbu.smartbrief` (`~/Library/LaunchAgents/com.kevbu.smartbrief.plist`). The agent runs `next start -p 3000` on a production build in the main checkout. Logs go to `~/Library/Logs/smartbrief.log`. The former VPS / Docker / Watchtower deploy is retired. `Dockerfile` and `docker-compose.yml` remain for manual container builds only.
 
-**Environment variables required:**
+**Deploy:** after merging to `main`, run `npm run deploy:local` (`scripts/deploy-local.sh`). It backs up the DB, pulls `main`, runs `npm ci` / `prisma db push` only when needed, builds, restarts the agent and checks the server responds.
+
+**Environment variables** (in `.env` / `.env.local` of the main checkout):
 
 ```
-ANTHROPIC_API_KEY=          # Required — Claude Haiku + Sonnet
-SMARTBRIEF_PASSWORD=        # Required — cookie-based login (checked in src/middleware.ts)
-DATABASE_URL=               # Required — path to SQLite file, e.g. file:/data/smartbrief.db
-NEXT_PUBLIC_APP_URL=        # Required — e.g. https://news.yourdomain.com
+ANTHROPIC_API_KEY=          # Optional — Claude Haiku + Sonnet; features degrade gracefully without it
+SMARTBRIEF_PASSWORD=        # Optional — cookie-based login (checked in src/proxy.ts); unset = no auth
+DATABASE_URL=               # Required — file:/Users/<you>/Library/Application Support/smartbrief/smartbrief.db
 ```
 
-> **Note:** `SMARTBRIEF_PASSWORD` is the correct env var name. If unset, the app runs without auth (local dev only).
-
-**Ports exposed:**
-- `3000` — Next.js app (proxied via Nginx Proxy Manager for HTTPS)
+**Port:** `3000` on localhost.
 
 **Database:**
-- SQLite file bind-mounted into the container
-- Managed via Prisma (`prisma db push` runs automatically at container start)
-- Build step runs `prisma generate` automatically
-
-**One-command start:**
-```bash
-docker compose up -d
-```
+- SQLite file outside the checkout: `~/Library/Application Support/smartbrief/smartbrief.db`
+- Move an existing `prisma/dev.db` there once with `scripts/migrate-db-location.sh` (`--dry-run` first)
+- Managed via Prisma. `deploy-local.sh` runs `prisma db push` only when `prisma/schema.prisma` changed
 
 ---
 
@@ -81,12 +73,12 @@ All push infrastructure is built. VAPID keys are auto-generated on first run and
 
 ---
 
-## Volume & Data Notes
+## Data & Backups
 
-All persistent data lives in a single bind-mounted SQLite file. This includes: articles, user preferences, feedback, push subscriptions, VAPID keys, IMAP poll timestamps, and app state.
+All persistent data lives in the single SQLite file. This includes: articles, user preferences, learned weights, feedback, saved items, push subscriptions, VAPID keys, IMAP poll timestamps, and app state.
 
-**Backup strategy (recommendation):**
+**Backups:** `deploy-local.sh` writes a consistent `sqlite3 .backup` copy to `~/Library/Application Support/smartbrief/backups/` before every deploy and keeps the newest 10 (`SMARTBRIEF_BACKUP_KEEP`). For backups between deploys, run the same command manually:
+
 ```bash
-# Example cron (host machine) — daily backup at 3am
-0 3 * * * cp /path/to/data/smartbrief.db /path/to/backups/smartbrief-$(date +\%Y\%m\%d).db
+sqlite3 "$HOME/Library/Application Support/smartbrief/smartbrief.db" ".backup '$HOME/Library/Application Support/smartbrief/backups/manual-$(date +%Y%m%d-%H%M%S).db'"
 ```
