@@ -3,6 +3,17 @@ import { fetchAllFeeds } from './news-fetcher'
 import { analyzeSentiment, generateTopStories } from './claude-analyzer'
 import { runSignalCleanupIfNeeded } from './topic-weights'
 import { matchRebuiltClusters, parseArticleIds } from './top-stories'
+import {
+  PRUNE_CHUNK_SIZE,
+  chunk,
+  collectProtectedArticleIds,
+  feedbackCutoff,
+  parseRetentionDays,
+  retentionCutoff,
+  selectArticlesToPrune,
+  selectOrphanedFeedbackArticleIds,
+  shouldIngest,
+} from './retention'
 import type { Article } from '@/types'
 
 export async function refreshNews(): Promise<{
@@ -11,6 +22,11 @@ export async function refreshNews(): Promise<{
 }> {
   const t0 = Date.now()
   const elapsed = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`
+
+  // Retention window (#31). One start time for the ingest guard and the prune.
+  const refreshStart = new Date(t0)
+  const retentionDays = getRetentionDays()
+  const ingestCutoff = retentionDays > 0 ? retentionCutoff(refreshStart, retentionDays) : null
 
   // 0. Get user preferences to check enabled sources
   const userPrefs = await db.userPreferences.findUnique({ where: { id: 'default' } })
@@ -33,11 +49,19 @@ export async function refreshNews(): Promise<{
   )
   // Also dedup within the batch: the same URL can appear in several feeds,
   // which would fail createMany on the unique url constraint.
+  // Items published before the retention cutoff are skipped: they would be
+  // pruned on the next refresh, and a feed that still serves a pruned URL
+  // must not re-add it as a "new" article (dedup only sees existing rows).
   const seenUrls = new Set<string>()
+  let staleSkipped = 0
   const newArticleData = rawArticles
     .filter((r) => {
       if (existingUrls.has(r.url) || seenUrls.has(r.url)) return false
       seenUrls.add(r.url)
+      if (!shouldIngest(r.publishedAt, ingestCutoff)) {
+        staleSkipped++
+        return false
+      }
       return true
     })
     .map((raw) => ({
@@ -58,7 +82,10 @@ export async function refreshNews(): Promise<{
   }
   const newArticleCount = newArticleData.length
 
-  console.log(`Added ${newArticleCount} new articles to DB`)
+  console.log(
+    `Added ${newArticleCount} new articles to DB` +
+      (staleSkipped > 0 ? ` (skipped ${staleSkipped} older than ${retentionDays} days)` : '')
+  )
 
   // 3a. One-time backfill: before the empty-severity marker, failed or key-less
   //     analyses were stored as neutral / score 0 / 'routine'. Reset those to
@@ -107,6 +134,9 @@ export async function refreshNews(): Promise<{
   // 6. Generate top stories — skip entirely if no new articles arrived
   if (newArticleCount === 0) {
     console.log('No new articles — skipping top stories generation')
+    // The existing unsaved clusters stay the current batch, so they protect
+    // their articles just like the saved ones.
+    await pruneOldArticles(refreshStart, retentionDays)
     const now = new Date()
     await db.appState.upsert({
       where: { id: 'default' },
@@ -208,6 +238,10 @@ export async function refreshNews(): Promise<{
     console.log(`Created ${created} top stories, merged ${merged} into saved clusters`)
   }
 
+  // 7b. Retention (#31). Runs after step 7, so the remaining clusters are
+  // exactly the saved ones plus the current batch.
+  await pruneOldArticles(refreshStart, retentionDays)
+
   // 8. Update AppState.lastRefreshed
   const now = new Date()
   await db.appState.upsert({
@@ -252,6 +286,97 @@ export async function ensureDefaultPreferences(): Promise<void> {
   void runSignalCleanupIfNeeded().catch((e) =>
     console.error('[ensureDefaultPreferences] signal cleanup failed:', e)
   )
+}
+
+let warnedInvalidRetention = false
+
+/** Reads SMARTBRIEF_RETENTION_DAYS at call time; 0 means retention is off. */
+function getRetentionDays(): number {
+  const raw = process.env.SMARTBRIEF_RETENTION_DAYS
+  const { days, valid } = parseRetentionDays(raw)
+  if (!valid && !warnedInvalidRetention) {
+    warnedInvalidRetention = true
+    console.warn(`[retention] invalid SMARTBRIEF_RETENTION_DAYS="${raw}", using ${days} days`)
+  }
+  return days
+}
+
+/**
+ * Deletes articles outside the retention window (#31). Never deletes saved
+ * articles, articles referenced by any remaining TopStory (saved clusters and
+ * the current batch), or articles fetched or read inside the window.
+ * Also removes ArticleFeedback whose article is gone and that is older than
+ * feedbackCutoff(). FeedbackSignal and the learned weights are not touched.
+ * Housekeeping only: errors are logged and never fail the refresh.
+ */
+export async function pruneOldArticles(
+  now: Date,
+  days: number
+): Promise<{ articles: number; feedback: number }> {
+  const result = { articles: 0, feedback: 0 }
+  if (days <= 0) return result
+  try {
+    const cutoff = retentionCutoff(now, days)
+    // SQL pre-filter, repeated on delete: a save or read that lands after the
+    // selection wins. selectArticlesToPrune applies the full rule.
+    const prunableWhere = {
+      isSaved: false,
+      publishedAt: { lt: cutoff },
+      fetchedAt: { lt: cutoff },
+      OR: [{ readAt: null }, { readAt: { lt: cutoff } }],
+    }
+    const [stories, candidates] = await Promise.all([
+      db.topStory.findMany({ select: { articleIds: true } }),
+      db.article.findMany({
+        where: prunableWhere,
+        select: { id: true, isSaved: true, publishedAt: true, fetchedAt: true, readAt: true },
+      }),
+    ])
+    const { ids: protectedIds, unparseable } = collectProtectedArticleIds(stories)
+    if (unparseable > 0) {
+      // Fail closed: a cluster whose ids cannot be read protects nothing.
+      console.warn(`[retention] skipped: ${unparseable} top stories with unreadable articleIds`)
+      return result
+    }
+    const pruneIds = selectArticlesToPrune(candidates, protectedIds, cutoff)
+    for (const ids of chunk(pruneIds, PRUNE_CHUNK_SIZE)) {
+      const { count } = await db.article.deleteMany({ where: { id: { in: ids }, ...prunableWhere } })
+      result.articles += count
+    }
+
+    // ArticleFeedback has no FK, so no cascade. Sweep rows whose article is
+    // gone once they are older than the feedback window.
+    const fbCutoff = feedbackCutoff(now, days)
+    const feedbackArticleIds = (
+      await db.articleFeedback.findMany({
+        where: { createdAt: { lt: fbCutoff } },
+        select: { articleId: true },
+        distinct: ['articleId'],
+      })
+    ).map((f) => f.articleId)
+    const existingIds = new Set<string>()
+    for (const ids of chunk(feedbackArticleIds, PRUNE_CHUNK_SIZE)) {
+      const rows = await db.article.findMany({ where: { id: { in: ids } }, select: { id: true } })
+      for (const row of rows) existingIds.add(row.id)
+    }
+    const orphanIds = selectOrphanedFeedbackArticleIds(feedbackArticleIds, existingIds)
+    for (const ids of chunk(orphanIds, PRUNE_CHUNK_SIZE)) {
+      const { count } = await db.articleFeedback.deleteMany({
+        where: { articleId: { in: ids }, createdAt: { lt: fbCutoff } },
+      })
+      result.feedback += count
+    }
+
+    if (result.articles > 0 || result.feedback > 0) {
+      console.log(
+        `[retention] pruned ${result.articles} articles older than ${days} days, ` +
+          `${result.feedback} orphaned feedback rows`
+      )
+    }
+  } catch (e) {
+    console.error('[retention] prune failed:', e)
+  }
+  return result
 }
 
 async function backfillLegacySeverity(): Promise<void> {
