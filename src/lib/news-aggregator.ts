@@ -16,10 +16,25 @@ import {
 } from './retention'
 import type { Article } from '@/types'
 
-export async function refreshNews(): Promise<{
-  articleCount: number
-  lastRefreshed: Date
-}> {
+type RefreshResult = { articleCount: number; lastRefreshed: Date }
+
+// Single-flight: scheduled and manual refresh share one in-flight run. Kept on
+// globalThis because dev hot reload can load this module twice.
+const refreshGlobal = globalThis as typeof globalThis & {
+  __smartbriefRefreshInFlight?: Promise<RefreshResult> | null
+}
+
+export function refreshNews(): Promise<RefreshResult> {
+  const existing = refreshGlobal.__smartbriefRefreshInFlight
+  if (existing) return existing
+  const run = runRefresh().finally(() => {
+    refreshGlobal.__smartbriefRefreshInFlight = null
+  })
+  refreshGlobal.__smartbriefRefreshInFlight = run
+  return run
+}
+
+async function runRefresh(): Promise<RefreshResult> {
   const t0 = Date.now()
   const elapsed = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`
 
@@ -151,7 +166,7 @@ export async function refreshNews(): Promise<{
         neutralRatio: 0.4,
         negativeRatio: 0.2,
         enabledCategories: 'technology,science,business,world,positive',
-        refreshIntervalMins: 60,
+        refreshIntervalMins: 360,
       },
       update: {},
     })
@@ -267,7 +282,7 @@ export async function refreshNews(): Promise<{
       neutralRatio: 0.4,
       negativeRatio: 0.2,
       enabledCategories: 'technology,science,business,world,positive',
-      refreshIntervalMins: 60,
+      refreshIntervalMins: 360,
     },
     update: {},
   })
@@ -285,7 +300,7 @@ export async function ensureDefaultPreferences(): Promise<void> {
       neutralRatio: 0.4,
       negativeRatio: 0.2,
       enabledCategories: 'technology,science,business,world,positive',
-      refreshIntervalMins: 60,
+      refreshIntervalMins: 360,
     },
     update: {},
   })

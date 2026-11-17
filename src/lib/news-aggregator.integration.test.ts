@@ -413,3 +413,30 @@ describe('refreshNews() retention', () => {
     expect(await articleExists(threeDays)).toBe(true)
   })
 })
+
+describe('refreshNews() single-flight', () => {
+  it('runs the pipeline once for concurrent calls and resolves both to the same result', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    fetchAllFeeds.mockImplementation(async () => {
+      await gate
+      return [rawArticle('sf1')]
+    })
+
+    const first = refreshNews()
+    const second = refreshNews()
+    expect(second).toBe(first)
+    release()
+    const [a, b] = await Promise.all([first, second])
+
+    expect(fetchAllFeeds).toHaveBeenCalledTimes(1)
+    expect(a).toBe(b)
+
+    // Once settled, the next call starts a fresh run.
+    fetchAllFeeds.mockResolvedValue([])
+    await refreshNews()
+    expect(fetchAllFeeds).toHaveBeenCalledTimes(2)
+  })
+})

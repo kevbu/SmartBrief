@@ -43,6 +43,8 @@ export interface TopStory {
   savedAt?: Date | string | null
 }
 
+export type RefreshMode = 'manual' | 'interval' | 'daily'
+
 export interface UserPreferences {
   id: string
   positiveRatio: number
@@ -50,6 +52,8 @@ export interface UserPreferences {
   negativeRatio: number
   enabledCategories: string[]
   refreshIntervalMins: number
+  refreshMode: RefreshMode
+  refreshDailyTime: string
   moodPreset: MoodPreset
   avoidTopics: string[]
   hiddenSources: string[]

@@ -23,6 +23,7 @@ export default defineConfig({
       DATABASE_URL: `file:./${DB_FILE}`,
       SMARTBRIEF_PASSWORD: '',
       ANTHROPIC_API_KEY: '',
+      SMARTBRIEF_SCHEDULER: 'off',
     },
   },
 })

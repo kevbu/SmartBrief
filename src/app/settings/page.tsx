@@ -8,8 +8,9 @@ import SourceMark from '@/components/SourceMark'
 import { MOOD_ICONS } from '@/components/MoodPresetToggle'
 import ThemeToggle from '@/components/ThemeToggle'
 import BackupSection from '@/components/BackupSection'
-import type { UserPreferences, MoodPreset, CustomSource } from '@/types'
+import type { UserPreferences, MoodPreset, CustomSource, RefreshMode } from '@/types'
 import { NEWS_SOURCES } from '@/lib/news-sources'
+import { clampIntervalMins, nextDailyTimeInput } from '@/lib/refresh-schedule'
 
 interface ImapStatus {
   configured: boolean
@@ -632,6 +633,13 @@ const REFRESH_OPTIONS = [
   { value: 60,  label: '1 hour' },
   { value: 120, label: '2 hours' },
   { value: 240, label: '4 hours' },
+  { value: 360, label: '6 hours' },
+]
+
+const REFRESH_MODE_OPTIONS: { value: RefreshMode; label: string }[] = [
+  { value: 'manual',   label: 'Manual' },
+  { value: 'interval', label: 'Interval' },
+  { value: 'daily',    label: 'Daily' },
 ]
 
 const CATEGORY_OPTIONS = [
@@ -693,7 +701,9 @@ export default function SettingsPage() {
   const [enabledCategories, setEnabledCategories] = useState<string[]>([
     'technology', 'science', 'business', 'world', 'positive',
   ])
-  const [refreshInterval, setRefreshInterval] = useState(60)
+  const [refreshInterval, setRefreshInterval] = useState(360)
+  const [refreshMode, setRefreshMode] = useState<RefreshMode>('manual')
+  const [refreshDailyTime, setRefreshDailyTime] = useState('07:00')
   const [moodPreset,  setMoodPreset]  = useState<MoodPreset>('balanced')
   const [avoidInput,  setAvoidInput]  = useState('')
   const [sessionSize, setSessionSize] = useState(15)
@@ -793,7 +803,9 @@ export default function SettingsPage() {
           setNeutralRatio(Math.round(prefs.neutralRatio * 100))
           setNegativeRatio(Math.round(prefs.negativeRatio * 100))
           setEnabledCategories(prefs.enabledCategories)
-          setRefreshInterval(prefs.refreshIntervalMins)
+          setRefreshInterval(clampIntervalMins(prefs.refreshIntervalMins, 360))
+          setRefreshMode(prefs.refreshMode ?? 'manual')
+          setRefreshDailyTime(prefs.refreshDailyTime ?? '07:00')
           setMoodPreset(prefs.moodPreset ?? 'balanced')
           setAvoidInput((prefs.avoidTopics ?? []).join(', '))
           setSessionSize(prefs.sessionSize ?? 15)
@@ -972,6 +984,8 @@ export default function SettingsPage() {
         negativeRatio: negativeRatio / sum,
         enabledCategories,
         refreshIntervalMins: refreshInterval,
+        refreshMode,
+        refreshDailyTime,
         moodPreset,
         avoidTopics,
         hiddenSources,
@@ -1671,14 +1685,17 @@ export default function SettingsPage() {
         {/* Auto-Refresh */}
         <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
           <h2 className="headline mb-1 text-lg font-semibold">Auto-Refresh</h2>
-          <p className="mb-3 text-xs text-ink-muted">How often to fetch fresh articles</p>
-          <div className="grid grid-cols-2 gap-2">
-            {REFRESH_OPTIONS.map((opt) => (
+          <p className="mb-3 text-xs text-ink-muted">When SmartBrief fetches and analyses new articles</p>
+          <div role="radiogroup" aria-label="Refresh mode" className="grid grid-cols-3 gap-2">
+            {REFRESH_MODE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
-                onClick={() => setRefreshInterval(opt.value)}
+                type="button"
+                role="radio"
+                aria-checked={refreshMode === opt.value}
+                onClick={() => setRefreshMode(opt.value)}
                 className={`min-h-[40px] cursor-pointer rounded-lg py-2.5 text-sm font-medium transition-colors ${
-                  refreshInterval === opt.value
+                  refreshMode === opt.value
                     ? 'bg-ink text-paper'
                     : 'bg-well text-ink-soft hover:bg-well-strong'
                 }`}
@@ -1687,6 +1704,56 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+          <p className="mt-2 text-xs text-ink-muted">
+            {refreshMode === 'manual' && 'Only when you tap refresh.'}
+            {refreshMode === 'interval' &&
+              `Every ${
+                REFRESH_OPTIONS.find((o) => o.value === refreshInterval)?.label.toLowerCase() ??
+                `${refreshInterval} min`
+              } while your computer is on.`}
+            {refreshMode === 'daily' &&
+              `Every day at ${refreshDailyTime}. If your computer is asleep then, it runs as soon as it wakes.`}
+          </p>
+          {refreshMode === 'interval' && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {REFRESH_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={refreshInterval === opt.value}
+                  onClick={() => setRefreshInterval(opt.value)}
+                  className={`min-h-[40px] cursor-pointer rounded-lg py-2.5 text-sm font-medium transition-colors ${
+                    refreshInterval === opt.value
+                      ? 'bg-ink text-paper'
+                      : 'bg-well text-ink-soft hover:bg-well-strong'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {refreshMode === 'daily' && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-well/60 p-3 text-sm text-ink-soft">
+              <label htmlFor="refresh-daily-time" className="text-xs text-ink-muted">
+                Every day at
+              </label>
+              <input
+                id="refresh-daily-time"
+                type="time"
+                required
+                value={refreshDailyTime}
+                onChange={(e) => {
+                  const next = e.target.value
+                  setRefreshDailyTime((prev) => nextDailyTimeInput(next, prev))
+                }}
+                className="rounded border border-line px-2 py-1 text-xs"
+              />
+            </div>
+          )}
+          {refreshMode !== 'manual' && (
+            <p className="mt-2 text-xs text-ink-muted">Each refresh uses Claude.</p>
+          )}
         </section>
 
         {/* About */}
