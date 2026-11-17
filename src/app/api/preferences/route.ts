@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import {
+  DEFAULT_DAILY_TIME,
+  parseRefreshMode,
+  validateRefreshPrefsInput,
+} from '@/lib/refresh-schedule'
 import type { UserPreferences, PreferencesApiResponse, MoodPreset, DepthMode } from '@/types'
 
 const MOOD_RATIOS: Record<MoodPreset, { pos: number; neu: number; neg: number }> = {
@@ -15,6 +20,8 @@ function dbToPreferences(prefs: {
   negativeRatio: number
   enabledCategories: string
   refreshIntervalMins: number
+  refreshMode: string
+  refreshDailyTime: string
   moodPreset: string
   avoidTopics: string
   hiddenSources: string
@@ -37,6 +44,8 @@ function dbToPreferences(prefs: {
       ? prefs.enabledCategories.split(',').filter(Boolean)
       : ['technology', 'science', 'business', 'world', 'positive'],
     refreshIntervalMins: prefs.refreshIntervalMins,
+    refreshMode: parseRefreshMode(prefs.refreshMode),
+    refreshDailyTime: prefs.refreshDailyTime ?? DEFAULT_DAILY_TIME,
     moodPreset: (prefs.moodPreset as MoodPreset) ?? 'balanced',
     avoidTopics: prefs.avoidTopics
       ? prefs.avoidTopics.split(',').filter(Boolean)
@@ -68,7 +77,7 @@ export async function GET() {
         neutralRatio: 0.4,
         negativeRatio: 0.2,
         enabledCategories: 'technology,science,business,world,positive',
-        refreshIntervalMins: 60,
+        refreshIntervalMins: 360,
         moodPreset: 'balanced',
         avoidTopics: '',
         hiddenSources: '',
@@ -96,7 +105,12 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json() as Partial<UserPreferences> & { moodPreset?: MoodPreset }
 
-    const updateData: Record<string, unknown> = {}
+    const refresh = validateRefreshPrefsInput(body)
+    if (!refresh.ok) {
+      return NextResponse.json({ success: false, error: refresh.error }, { status: 400 })
+    }
+
+    const updateData: Record<string, unknown> = { ...refresh.data }
 
     // If a mood preset is being set, derive the ratios automatically
     if (body.moodPreset) {
@@ -136,8 +150,6 @@ export async function PUT(request: Request) {
       updateData.enabledCategories = Array.isArray(body.enabledCategories)
         ? body.enabledCategories.join(',')
         : body.enabledCategories
-    if (body.refreshIntervalMins !== undefined)
-      updateData.refreshIntervalMins = body.refreshIntervalMins
     if (body.avoidTopics !== undefined)
       updateData.avoidTopics = Array.isArray(body.avoidTopics)
         ? body.avoidTopics.join(',')
@@ -170,7 +182,9 @@ export async function PUT(request: Request) {
         neutralRatio: (updateData.neutralRatio as number) ?? 0.4,
         negativeRatio: (updateData.negativeRatio as number) ?? 0.2,
         enabledCategories: (updateData.enabledCategories as string) ?? 'technology,science,business,world,positive',
-        refreshIntervalMins: (updateData.refreshIntervalMins as number) ?? 60,
+        refreshIntervalMins: (updateData.refreshIntervalMins as number) ?? 360,
+        refreshMode: (updateData.refreshMode as string) ?? 'manual',
+        refreshDailyTime: (updateData.refreshDailyTime as string) ?? DEFAULT_DAILY_TIME,
         moodPreset: (updateData.moodPreset as string) ?? 'balanced',
         avoidTopics: (updateData.avoidTopics as string) ?? '',
         hiddenSources: (updateData.hiddenSources as string) ?? '',

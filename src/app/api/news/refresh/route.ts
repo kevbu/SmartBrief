@@ -1,24 +1,15 @@
 import { NextResponse } from 'next/server'
 import { refreshNews } from '@/lib/news-aggregator'
-import { pollImap, isImapPollDue } from '@/lib/imap-poller'
-import { detectAndPush, isDetectDue } from '@/lib/breaking-news-detector'
+import { runPostRefreshTasks } from '@/lib/scheduler'
 import type { RefreshApiResponse } from '@/types'
 
 export async function POST() {
   try {
     const { articleCount, lastRefreshed } = await refreshNews()
 
-    // Piggyback IMAP poll when the configured interval has elapsed.
-    // Runs fire-and-forget style so a slow/failing IMAP server doesn't
-    // block the RSS response. Errors are logged but not surfaced to the client.
-    if (await isImapPollDue()) {
-      pollImap().catch((err) => console.error('[refresh] IMAP poll error:', err))
-    }
-
-    // Piggyback breaking-news detection at its own 5-minute cadence.
-    if (await isDetectDue()) {
-      detectAndPush().catch((err) => console.error('[refresh] Breaking-news detect error:', err))
-    }
+    // Piggyback IMAP poll and breaking-news detection, each at its own cadence.
+    // Only the due-checks are awaited; the poll and detection run fire-and-forget.
+    await runPostRefreshTasks()
 
     const response: RefreshApiResponse = {
       success: true,

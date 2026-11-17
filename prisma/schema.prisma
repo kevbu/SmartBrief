@@ -60,6 +60,8 @@ model UserPreferences {
   negativeRatio       Float    @default(0.2)
   enabledCategories   String   @default("technology,science,business,world,positive")
   refreshIntervalMins Int      @default(360)
+  refreshMode         String   @default("manual")
+  refreshDailyTime    String   @default("07:00")
   moodPreset          String   @default("balanced")
   avoidTopics         String   @default("")
   hiddenSources       String   @default("")

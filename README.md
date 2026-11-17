@@ -53,7 +53,15 @@ flowchart LR
     UI -- feedback --> DB
 ```
 
-A refresh runs when you tap the refresh button. There is no background schedule. Articles older than 30 days are pruned automatically, except saved ones.
+A refresh runs when you tap the refresh button. Under Settings → Auto-Refresh you can also let the server refresh on its own:
+
+- **Manual** (default): only when you tap refresh.
+- **Interval**: every 30 min to 6 hours.
+- **Daily**: once a day at a fixed time, e.g. 07:00.
+
+The schedule runs only while the computer is on and SmartBrief is running. It does not wake a sleeping Mac. If the computer sleeps through the daily time, the refresh runs within a minute after it wakes. Times use the server's local time zone (set `TZ` in Docker). Each refresh costs Claude calls. `SMARTBRIEF_SCHEDULER=off` turns the background schedule off entirely, whatever the setting says.
+
+Articles older than 30 days are pruned automatically, except saved ones.
 
 ## Quick start
 

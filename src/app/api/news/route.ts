@@ -7,6 +7,7 @@ import { applyDecayAndGetTopicWeightMap } from '@/lib/topic-weights'
 import { scoreByImportance } from '@/lib/importance-score'
 import { isAiAvailable } from '@/lib/claude-analyzer'
 import { filterTopStoriesForFeed, selectCurrentBatch, toTopStory } from '@/lib/top-stories'
+import { DEFAULT_DAILY_TIME, parseRefreshMode } from '@/lib/refresh-schedule'
 import type { Article, TopStory, UserPreferences, NewsApiResponse, MoodPreset, DepthMode } from '@/types'
 
 export async function GET(request: Request) {
@@ -42,7 +43,9 @@ export async function GET(request: Request) {
       enabledCategories: prefsDb?.enabledCategories
         ? prefsDb.enabledCategories.split(',').filter(Boolean)
         : ['technology', 'science', 'business', 'world', 'positive'],
-      refreshIntervalMins: prefsDb?.refreshIntervalMins ?? 60,
+      refreshIntervalMins: prefsDb?.refreshIntervalMins ?? 360,
+      refreshMode: parseRefreshMode(prefsDb?.refreshMode),
+      refreshDailyTime: prefsDb?.refreshDailyTime ?? DEFAULT_DAILY_TIME,
       moodPreset: (prefsDb?.moodPreset as MoodPreset) ?? 'balanced',
       avoidTopics,
       hiddenSources,
