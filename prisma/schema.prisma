@@ -25,6 +25,7 @@ model Article {
   isRead             Boolean   @default(false)
   readAt             DateTime?
   isSaved            Boolean   @default(false)
+  savedAt            DateTime?
   fetchedAt          DateTime  @default(now())
   severity           String    @default("")
   isCriticalBreaking Boolean   @default(false)
@@ -38,17 +39,18 @@ model Article {
 }
 
 model TopStory {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   title           String
   summary         String
   category        String
   articleIds      String
   sources         String
-  sentiment       String   @default("neutral")
+  sentiment       String    @default("neutral")
   bullets         String?
   clusterArticles String?
-  saved           Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  saved           Boolean   @default(false)
+  savedAt         DateTime?
+  createdAt       DateTime  @default(now())
 }
 
 model UserPreferences {

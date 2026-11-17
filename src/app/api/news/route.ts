@@ -6,7 +6,7 @@ import { applyDecayAndGetWeightMap, effectiveNegativeRatio } from '@/lib/source-
 import { applyDecayAndGetTopicWeightMap } from '@/lib/topic-weights'
 import { scoreByImportance } from '@/lib/importance-score'
 import { isAiAvailable } from '@/lib/claude-analyzer'
-import { selectCurrentBatch, toTopStory } from '@/lib/top-stories'
+import { filterTopStoriesForFeed, selectCurrentBatch, toTopStory } from '@/lib/top-stories'
 import type { Article, TopStory, UserPreferences, NewsApiResponse, MoodPreset, DepthMode } from '@/types'
 
 export async function GET(request: Request) {
@@ -135,9 +135,13 @@ export async function GET(request: Request) {
     // Get balance stats from ALL articles (not filtered by category)
     const balanceStats = computeBalanceStats(articles)
 
-    const topStories: TopStory[] = selectCurrentBatch(topStoriesDb)
-      .map(toTopStory)
-      .sort((a, b) => b.sources.length - a.sources.length)
+    // Clusters honour hidden sources and avoid topics (#16), but are not
+    // intersected with the article list: they must not vanish as articles get read.
+    const topStories: TopStory[] = filterTopStoriesForFeed(
+      selectCurrentBatch(topStoriesDb).map(toTopStory),
+      hiddenSources,
+      avoidTopics
+    ).sort((a, b) => b.sources.length - a.sources.length)
 
     const hasApiKey = isAiAvailable()
 

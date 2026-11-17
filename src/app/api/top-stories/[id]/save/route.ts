@@ -16,9 +16,10 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
     }
 
+    const nextSaved = !story.saved
     const updated = await db.topStory.update({
       where: { id },
-      data: { saved: !story.saved },
+      data: { saved: nextSaved, savedAt: nextSaved ? new Date() : null },
       select: { saved: true },
     })
 
