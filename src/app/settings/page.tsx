@@ -7,6 +7,7 @@ import CategoryIcon from '@/components/CategoryIcon'
 import SourceMark from '@/components/SourceMark'
 import { MOOD_ICONS } from '@/components/MoodPresetToggle'
 import ThemeToggle from '@/components/ThemeToggle'
+import BackupSection from '@/components/BackupSection'
 import type { UserPreferences, MoodPreset, CustomSource } from '@/types'
 import { NEWS_SOURCES } from '@/lib/news-sources'
 
@@ -774,6 +775,11 @@ export default function SettingsPage() {
   // Debounce timer for sources
   const sourcesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Bumped after a backup import: reloads preferences below (so a later "Save
+  // Preferences" does not overwrite imported values) and remounts sections
+  // that load their own data.
+  const [importVersion, setImportVersion] = useState(0)
+
   useEffect(() => {
     async function load() {
       try {
@@ -815,7 +821,7 @@ export default function SettingsPage() {
       }
     }
     load()
-  }, [])
+  }, [importVersion])
 
   function applyMoodPreset(preset: MoodPreset) {
     setMoodPreset(preset)
@@ -1484,7 +1490,7 @@ export default function SettingsPage() {
             <code className="rounded bg-well px-1 font-mono text-[11px] text-ink-soft">NEWSLETTER_INGEST_SECRET</code>{' '}
             in your environment to enable this.
           </p>
-          <NewsletterIngestSection />
+          <NewsletterIngestSection key={importVersion} />
         </section>
 
         {/* Session & Reading */}
@@ -1652,11 +1658,15 @@ export default function SettingsPage() {
 
         {/* Feed Learning */}
         <LearnedPreferencesSection
+          key={importVersion}
           learningEnabled={learningEnabled}
           onToggleLearning={setLearningEnabled}
           preferenceWeight={preferenceWeight}
           onPreferenceWeightChange={setPreferenceWeight}
         />
+
+        {/* Backup */}
+        <BackupSection onImported={() => setImportVersion((v) => v + 1)} />
 
         {/* Auto-Refresh */}
         <section className="rounded-2xl border border-line bg-card p-4 shadow-card">
