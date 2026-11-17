@@ -36,7 +36,7 @@ SmartBrief turns this around:
 - **Saved articles and clusters** for later reading.
 - **Push notifications** for breaking news (opt-in, daily cap, quiet hours).
 - **Newsletter ingestion** via IMAP inbox or webhook.
-- **PWA.** Install it on your phone's home screen. Dark mode included.
+- **Runs in the browser.** Responsive layout and dark mode. Installable as a PWA (see the note on phone access below).
 - **Backup.** Export and import your data from the settings page.
 
 ## How it works
@@ -113,9 +113,11 @@ npm run build
 npm start
 ```
 
-### Use it on your phone
+### Phone access (optional, advanced)
 
-Your phone must reach the machine, for example in the same Wi-Fi via `http://<your-mac-ip>:3000`, or via a tunnel such as Tailscale. Then use "Add to Home Screen" in Safari or Chrome. Set `SMARTBRIEF_PASSWORD` as soon as the app is reachable from anywhere other than localhost.
+SmartBrief is not a mobile app. The server always runs on your computer, and with `CLAUDE_USE_LOCAL_SDK=true` it must run there, because it uses your local Claude Code login. The default use is the browser on that computer.
+
+A phone can only open the app while the computer is on and reachable, for example in the same Wi-Fi via `http://<your-computer-ip>:3000`, or through a tunnel such as Tailscale. "Add to Home Screen" then gives you an app icon, but it is still only a window to your computer. Set `SMARTBRIEF_PASSWORD` before you make the app reachable from anywhere other than localhost.
 
 ## Configuration
 
