@@ -42,12 +42,16 @@ Next.js 16 (App Router), TypeScript, SQLite via Prisma, Tailwind CSS. Single-use
 POST /api/news/refresh
   → news-aggregator.refreshNews()
       1. news-fetcher.fetchAllFeeds()       — RSS → RawArticle[]
-      2. db.article.upsert per URL          — dedup by URL
+      2. db.article.createMany (new URLs)   — dedup by URL, skips items older than the retention window
       3. claude-analyzer.analyzeSentiment() — Haiku 4.5, batches of 20
       4. claude-analyzer.generateTopStories() — Sonnet 4.6, 12-hour window
       5. db.topStory.deleteMany(unsaved) + createMany — replaces unsaved clusters each refresh
+      6. pruneOldArticles()                 — retention, also on the "no new articles" path
   → piggybacked (fire-and-forget): IMAP poll + breaking-news detection
 ```
+
+### Article retention
+Each refresh deletes articles older than `SMARTBRIEF_RETENTION_DAYS` (default 30, `0` = off). An article is pruned only if `publishedAt`, `fetchedAt` and `readAt` (if set) are all before the cutoff. Never pruned: saved articles and any id in a remaining `TopStory.articleIds` (saved clusters + the current batch). Orphaned `ArticleFeedback` is removed once older than max(window, 30 days). `FeedbackSignal` and the weight tables are not touched. Dedup only sees existing rows, so step 2 skips RSS items published before the cutoff; otherwise a feed that still serves a pruned URL would re-add it. If any cluster's `articleIds` is unreadable, the prune is skipped (fail closed). Errors are logged and never fail the refresh. A window below 30 days also shortens the 14/30-day recap views. Selection logic is pure in `src/lib/retention.ts`. The SQLite file does not shrink (no `VACUUM`); freed pages are reused.
 
 ### Data flow: feed read
 
@@ -104,4 +108,5 @@ There is no CI/CD pipeline. The former GitHub Actions → GHCR → Watchtower de
 - **TopStories are ephemeral** — each refresh deletes unsaved clusters and creates a new batch with one shared `createdAt`. Saved clusters survive. The feed shows only the newest batch (`selectCurrentBatch` in `src/lib/top-stories.ts`); `/saved` reads `GET /api/saved`. Don't store business logic that depends on unsaved TopStory persistence across refreshes.
 - **`src/lib/db.ts`** exports a singleton `db` (Prisma client). Use this everywhere; don't instantiate PrismaClient directly.
 - **Unit tests run on Vitest** (`vitest.config.ts`, jest-style globals, `@/` alias). Tests live next to the code as `src/**/*.test.ts` and are excluded from `tsc`. New logic worth testing follows the same pattern: pure function + test file.
+- **DB-backed tests** are named `*.integration.test.ts` and run under plain `npm test`. Pattern (`src/lib/news-aggregator.integration.test.ts`): set `DATABASE_URL` to a fresh file in `os.tmpdir()` at the top of the file, `vi.mock` network/Claude modules, `prisma db push --skip-generate` in `beforeAll`, then import `./db` and the module under test dynamically, delete the file in `afterAll`. Never point a test at the live DB.
 - **Balance filtering happens server-side** in `applyBalanceFilter()`, not in the client. The ratios come from `UserPreferences.positiveRatio/neutralRatio/negativeRatio`.
