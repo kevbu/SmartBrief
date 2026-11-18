@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import type { Article, TopStory } from '@/types'
 import SourceMark from './SourceMark'
+import PremiumBadge from './PremiumBadge'
 import CategoryIcon, { CATEGORY_LABELS, SentimentDot } from './CategoryIcon'
 
 interface ArticleDetailProps {
@@ -151,6 +152,7 @@ export default function ArticleDetail({
         <div className="flex items-center gap-2 text-xs text-ink-muted">
           <SourceMark source={article.source} size="sm" newsletter={article.url.startsWith('newsletter://')} />
           <span className="font-semibold text-ink-soft">{article.source}</span>
+          {article.isPremium && <PremiumBadge />}
           <span aria-hidden="true" className="text-ink-faint">·</span>
           <span>{timeAgo}</span>
         </div>

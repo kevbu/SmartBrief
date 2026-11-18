@@ -19,6 +19,8 @@ export interface Article {
   sentiment: SentimentType
   sentimentScore: number
   aiSummary: string | null
+  /** Paid article (Handelsblatt H+) */
+  isPremium?: boolean
   isRead: boolean
   isSaved: boolean
   /** When the article was bookmarked; null when unsaved or saved before #30 */
@@ -147,6 +149,12 @@ export interface NewsSource {
   logoEmoji: string
   bias: BiasType
   language: 'en' | 'de'
+  /** More feeds of the same source (e.g. sections), fetched under one toggle */
+  extraUrls?: string[]
+  /** Items read per feed; default 10 */
+  maxItems?: number
+  /** Fetch the article page and store its JSON-LD body as content */
+  fullText?: boolean
 }
 
 export interface CustomSource {
@@ -175,6 +183,8 @@ export interface RawArticle {
   source: string
   sourceUrl: string | null
   category: CategoryType
+  /** Paid article (Handelsblatt H+), from the feed's access marker */
+  isPremium?: boolean
 }
 
 export interface ArticleFeedback {

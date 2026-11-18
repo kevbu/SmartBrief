@@ -9,6 +9,7 @@ import SentimentBadge from './SentimentBadge'
 import BiasBadge from './BiasBadge'
 import FeedbackMenu from './FeedbackMenu'
 import SourceMark from './SourceMark'
+import PremiumBadge from './PremiumBadge'
 
 const SKIP_VISIBILITY_MS = 3000
 
@@ -230,6 +231,7 @@ export default function ArticleCard({
                 newsletter
               </span>
             )}
+            {article.isPremium && <PremiumBadge />}
             <BiasBadge source={article.source} />
             <span aria-hidden="true" className="text-ink-faint">·</span>
             <span className="flex-shrink-0">{timeAgo}</span>

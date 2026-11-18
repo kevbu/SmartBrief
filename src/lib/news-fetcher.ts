@@ -7,7 +7,11 @@ interface FetchableSource {
   name: string
   url: string
   category: string
+  extraUrls?: string[]
+  maxItems?: number
 }
+
+const DEFAULT_MAX_ITEMS = 10
 
 const parser = new Parser({
   timeout: 5000,
@@ -21,6 +25,7 @@ const parser = new Parser({
       ['media:thumbnail', 'mediaThumbnail'],
       ['enclosure', 'enclosure'],
       ['content:encoded', 'contentEncoded'],
+      ['media:category', 'mediaCategories', { keepArray: true }],
     ],
   },
 })
@@ -68,11 +73,36 @@ function extractImageUrl(item: Record<string, unknown>): string | null {
   return null
 }
 
-async function fetchSourceFeed(
-  source: FetchableSource
-): Promise<RawArticle[]> {
-  const feed = await parser.parseURL(source.url)
-  const items = feed.items.slice(0, 10)
+/**
+ * True if the item carries a paid-access marker. Handelsblatt tags H+ items
+ * with <media:category label="accessCategory">H_PLUS</media:category>.
+ */
+export function isPremiumItem(item: Record<string, unknown>): boolean {
+  const cats = item.mediaCategories
+  if (!Array.isArray(cats)) return false
+  return cats.some((c) => {
+    if (!c || typeof c !== 'object') return false
+    const cat = c as { _?: string; $?: { label?: string } }
+    return cat.$?.label === 'accessCategory' && cat._?.trim() === 'H_PLUS'
+  })
+}
+
+async function fetchSourceFeed(source: FetchableSource): Promise<RawArticle[]> {
+  const urls = [source.url, ...(source.extraUrls ?? [])]
+  const results = await Promise.allSettled(urls.map((url) => fetchFeedUrl(source, url)))
+  const articles: RawArticle[] = []
+  results.forEach((result, idx) => {
+    if (result.status === 'fulfilled') articles.push(...result.value)
+    else if (idx > 0) console.error(`Failed to fetch ${source.name} (${urls[idx]}): ${result.reason}`)
+  })
+  // The main feed is the source's health signal; extra section feeds are best effort.
+  if (results[0].status === 'rejected') throw results[0].reason
+  return articles
+}
+
+async function fetchFeedUrl(source: FetchableSource, url: string): Promise<RawArticle[]> {
+  const feed = await parser.parseURL(url)
+  const items = feed.items.slice(0, source.maxItems ?? DEFAULT_MAX_ITEMS)
 
   return items
     .filter((item) => item.link && item.title)
@@ -88,6 +118,7 @@ async function fetchSourceFeed(
         source: source.name,
         sourceUrl: feed.link || source.url,
         category: source.category as CategoryType,
+        isPremium: isPremiumItem(rawItem),
       }
     })
 }

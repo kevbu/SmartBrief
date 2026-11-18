@@ -22,6 +22,7 @@ model Article {
   sentimentScore     Float     @default(0)
   aiSummary          String?
   aiBullets          String?
+  isPremium          Boolean   @default(false)
   isRead             Boolean   @default(false)
   readAt             DateTime?
   isSaved            Boolean   @default(false)

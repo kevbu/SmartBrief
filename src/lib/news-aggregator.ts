@@ -1,5 +1,6 @@
 import { db } from './db'
 import { fetchAllFeeds } from './news-fetcher'
+import { enrichWithFullText } from './article-enricher'
 import { analyzeSentiment, generateTopStories } from './claude-analyzer'
 import { runSignalCleanupIfNeeded } from './topic-weights'
 import { matchRebuiltClusters, parseArticleIds } from './top-stories'
@@ -69,7 +70,7 @@ async function runRefresh(): Promise<RefreshResult> {
   // must not re-add it as a "new" article (dedup only sees existing rows).
   const seenUrls = new Set<string>()
   let staleSkipped = 0
-  const newArticleData = rawArticles
+  const newRawArticles = rawArticles
     .filter((r) => {
       if (existingUrls.has(r.url) || seenUrls.has(r.url)) return false
       seenUrls.add(r.url)
@@ -79,19 +80,29 @@ async function runRefresh(): Promise<RefreshResult> {
       }
       return true
     })
-    .map((raw) => ({
-      title: raw.title,
-      description: raw.description,
-      content: raw.content,
-      url: raw.url,
-      imageUrl: raw.imageUrl,
-      publishedAt: raw.publishedAt,
-      source: raw.source,
-      sourceUrl: raw.sourceUrl,
-      category: raw.category,
-      sentiment: 'neutral',
-      sentimentScore: 0,
-    }))
+
+  // 2b. Full text for sources that offer it (Handelsblatt: free part of H+).
+  // Only new articles, so each page is fetched once.
+  try {
+    await enrichWithFullText(newRawArticles)
+  } catch (e) {
+    console.error('[enrich] failed:', e)
+  }
+
+  const newArticleData = newRawArticles.map((raw) => ({
+    title: raw.title,
+    description: raw.description,
+    content: raw.content,
+    url: raw.url,
+    imageUrl: raw.imageUrl,
+    publishedAt: raw.publishedAt,
+    source: raw.source,
+    sourceUrl: raw.sourceUrl,
+    category: raw.category,
+    isPremium: raw.isPremium ?? false,
+    sentiment: 'neutral',
+    sentimentScore: 0,
+  }))
   if (newArticleData.length > 0) {
     await db.article.createMany({ data: newArticleData })
   }
