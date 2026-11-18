@@ -134,7 +134,21 @@ export const NEWS_SOURCES: NewsSource[] = [
   { id: 'tagesschau', name: 'Tagesschau', url: 'https://www.tagesschau.de/xml/rss2', category: 'world', logoEmoji: '📺', bias: 'center', language: 'de' },
   { id: 'heise', name: 'Heise Online', url: 'https://www.heise.de/rss/heise.rdf', category: 'technology', logoEmoji: '💻', bias: 'center', language: 'de' },
   { id: 't3n', name: 't3n', url: 'https://t3n.de/rss.xml', category: 'technology', logoEmoji: '🚀', bias: 'center', language: 'de' },
-  { id: 'handelsblatt', name: 'Handelsblatt', url: 'https://www.handelsblatt.com/contentexport/feed/top-themen', category: 'business', logoEmoji: '📈', bias: 'center-right', language: 'de' },
+  {
+    id: 'handelsblatt',
+    name: 'Handelsblatt',
+    url: 'https://www.handelsblatt.com/contentexport/feed/top-themen',
+    extraUrls: [
+      'https://www.handelsblatt.com/contentexport/feed/finanzen',
+      'https://www.handelsblatt.com/contentexport/feed/unternehmen',
+    ],
+    maxItems: 20,
+    fullText: true,
+    category: 'business',
+    logoEmoji: '📈',
+    bias: 'center-right',
+    language: 'de',
+  },
   { id: 'sueddeutsche', name: 'Süddeutsche Zeitung', url: 'https://rss.sueddeutsche.de/rss/Topthemen', category: 'world', logoEmoji: '🗞️', bias: 'center-left', language: 'de' },
 ]
 

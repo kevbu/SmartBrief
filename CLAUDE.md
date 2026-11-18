@@ -50,6 +50,9 @@ POST /api/news/refresh
   → piggybacked (fire-and-forget): IMAP poll + breaking-news detection
 ```
 
+### Article full text
+Sources with `fullText: true` in `news-sources.ts` (today: Handelsblatt) get their article page fetched once, for new articles only, between dedup and insert (`article-enricher.ts`, max 40 per refresh, 2 parallel). The JSON-LD `articleBody` goes into `Article.content` when it is longer than the feed text. Without a login, H+ pages give only the free opening paragraphs. `isPremium` comes from the feed's `accessCategory = H_PLUS` marker and shows as an H+ badge. The per-cluster summary call sends `pickArticleText()` (content if it adds text, else description, max 2,500 chars); clustering and sentiment still use the description. SZ is not enrichable: its article pages sit behind PerimeterX bot protection. A source can list `extraUrls` (section feeds under one toggle) and `maxItems` (default 10).
+
 ### Article retention
 Each refresh deletes articles older than `SMARTBRIEF_RETENTION_DAYS` (default 30, `0` = off). An article is pruned only if `publishedAt`, `fetchedAt` and `readAt` (if set) are all before the cutoff. Never pruned: saved articles and any id in a remaining `TopStory.articleIds` (saved clusters + the current batch). Orphaned `ArticleFeedback` is removed once older than max(window, 30 days). `FeedbackSignal` and the weight tables are not touched. Dedup only sees existing rows, so step 2 skips RSS items published before the cutoff; otherwise a feed that still serves a pruned URL would re-add it. If any cluster's `articleIds` is unreadable, the prune is skipped (fail closed). Errors are logged and never fail the refresh. A window below 30 days also shortens the 14/30-day recap views. Selection logic is pure in `src/lib/retention.ts`. The SQLite file does not shrink (no `VACUUM`); freed pages are reused.
 

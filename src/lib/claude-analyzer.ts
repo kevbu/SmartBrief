@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { Article, SentimentResult, SentimentType, TopStory } from '@/types'
 import { NEWS_SOURCES } from './news-sources'
+import { pickArticleText } from './article-text'
 
 const sourceLangMap: Record<string, string> = Object.fromEntries(
   NEWS_SOURCES.map((s) => [s.name, s.language])
@@ -239,6 +240,8 @@ ${articleList}`
 }
 
 const SUMMARY_CONCURRENCY = 10
+/** Characters per article sent to the per-cluster summary call. */
+const CLUSTER_ARTICLE_TEXT_MAX = 2500
 
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -350,7 +353,8 @@ ${articleList}`,
     const sources = Array.from(new Set(relatedArticles.map((a) => a.source)))
 
     const clusterList = relatedArticles
-      .map((a) => `- [${a.source}] ${a.title}\n  ${a.description?.slice(0, 400) || ''}`)
+      // Full text where we have it (Handelsblatt), capped to bound token cost.
+      .map((a) => `- [${a.source}] ${a.title}\n  ${pickArticleText(a, CLUSTER_ARTICLE_TEXT_MAX)}`)
       .join('\n')
 
     try {
