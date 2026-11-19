@@ -1,8 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 import MoodPresetToggle from './MoodPresetToggle'
 import type { MoodPreset } from '@/types'
+import { formatLastRefreshed, formatToday, freshnessOf } from '@/lib/freshness'
 
 interface HeaderProps {
   onRefresh: () => void
@@ -12,23 +14,31 @@ interface HeaderProps {
   onMoodChange: (preset: MoodPreset) => void
 }
 
-function formatLastRefreshed(dateStr: string | null): string {
-  if (!dateStr) return 'Never synced'
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-
-  if (diffMins < 1) return 'Updated just now'
-  if (diffMins < 60) return `Updated ${diffMins}m ago`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `Updated ${diffHours}h ago`
-  return 'Updated yesterday'
+/** Current time, re-read every minute and whenever the app becomes visible again. */
+function useNow(): Date {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const tick = () => setNow(new Date())
+    const id = window.setInterval(tick, 60_000)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') tick()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', tick)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', tick)
+    }
+  }, [])
+  return now
 }
 
-function formatToday(): string {
-  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
-}
+const DOT_CLASS = {
+  fresh: 'bg-positive',
+  stale: 'bg-negative',
+  never: 'bg-ink-faint',
+} as const
 
 export function BrandMark({ className = 'h-8 w-8' }: { className?: string }) {
   return (
@@ -48,6 +58,7 @@ export default function Header({
   moodPreset,
   onMoodChange,
 }: HeaderProps) {
+  const now = useNow()
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur-md">
       <div className="flex items-center justify-between px-4 pb-3 pt-3.5">
@@ -56,14 +67,17 @@ export default function Header({
           <div className="min-w-0">
             <h1 className="headline text-[22px] font-semibold leading-none">SmartBrief</h1>
             <p className="mt-1 flex items-center gap-1.5 truncate text-[11px] text-ink-muted">
-              <span suppressHydrationWarning>{formatToday()}</span>
+              <span suppressHydrationWarning>{formatToday(now)}</span>
               <span aria-hidden="true" className="text-ink-faint">·</span>
               {isRefreshing ? (
                 <span>Refreshing…</span>
               ) : (
-                <span className="flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-positive" aria-hidden="true" />
-                  {formatLastRefreshed(lastRefreshed)}
+                <span className="flex items-center gap-1" suppressHydrationWarning>
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${DOT_CLASS[freshnessOf(lastRefreshed, now)]}`}
+                    aria-hidden="true"
+                  />
+                  {formatLastRefreshed(lastRefreshed, now)}
                 </span>
               )}
             </p>
