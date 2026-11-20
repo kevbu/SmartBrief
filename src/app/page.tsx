@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Header from '@/components/Header'
 import TopicTabs from '@/components/TopicTabs'
 import TopStoryCard from '@/components/TopStoryCard'
@@ -10,6 +10,7 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import CatchUpBanner from '@/components/CatchUpBanner'
 import NewsletterCard from '@/components/NewsletterCard'
 import Link from 'next/link'
+import { hasNewerServerData } from '@/lib/freshness'
 import type {
   Article,
   TopStory,
@@ -281,6 +282,39 @@ export default function HomePage() {
     init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Reload when the app returns to the foreground and the server has refreshed
+  // meanwhile (scheduled refresh while the PWA sat in the background). A cheap
+  // status probe decides; the feed is untouched when nothing is new.
+  const resumeState = useRef({ lastRefreshed, isLoading, isRefreshing, activeCategory, catchUpMode, catchUpSince })
+  resumeState.current = { lastRefreshed, isLoading, isRefreshing, activeCategory, catchUpMode, catchUpSince }
+  useEffect(() => {
+    let inFlight = false
+    async function onResume() {
+      if (document.visibilityState !== 'visible' || inFlight) return
+      const st = resumeState.current
+      if (st.isLoading || st.isRefreshing) return
+      inFlight = true
+      try {
+        const res = await fetch('/api/news/status', { cache: 'no-store' })
+        if (!res.ok) return
+        const { lastRefreshed: serverLast } = (await res.json()) as { lastRefreshed: string | null }
+        const now = resumeState.current
+        if (!hasNewerServerData(serverLast, now.lastRefreshed) || now.isLoading || now.isRefreshing) return
+        if (now.catchUpMode && now.catchUpSince) {
+          await fetchNews(now.activeCategory, 'catchup', now.catchUpSince)
+        } else {
+          await fetchNews(now.activeCategory)
+        }
+      } catch (err) {
+        console.error('Resume check failed:', err)
+      } finally {
+        inFlight = false
+      }
+    }
+    document.addEventListener('visibilitychange', onResume)
+    return () => document.removeEventListener('visibilitychange', onResume)
+  }, [fetchNews])
 
   // Fetch when category changes
   useEffect(() => {

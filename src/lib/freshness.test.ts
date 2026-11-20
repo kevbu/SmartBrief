@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatLastRefreshed, formatToday, freshnessOf, STALE_AFTER_MS } from './freshness'
+import { formatLastRefreshed, formatToday, freshnessOf, hasNewerServerData, STALE_AFTER_MS } from './freshness'
 
 const now = new Date('2026-11-19T09:30:00')
 
@@ -52,5 +52,31 @@ describe('freshnessOf', () => {
     const at = (ms: number) => new Date(now.getTime() - ms).toISOString()
     expect(freshnessOf(at(STALE_AFTER_MS), now)).toBe('fresh')
     expect(freshnessOf(at(STALE_AFTER_MS + 60_000), now)).toBe('stale')
+  })
+})
+
+describe('hasNewerServerData', () => {
+  const a = '2026-11-19T07:00:00.000Z'
+  const b = '2026-11-19T09:00:00.000Z'
+
+  it('reloads only when the server timestamp is strictly newer', () => {
+    expect(hasNewerServerData(b, a)).toBe(true)
+    expect(hasNewerServerData(a, a)).toBe(false)
+    expect(hasNewerServerData(a, b)).toBe(false)
+  })
+
+  it('compares instants, not strings (offsets and precision differ)', () => {
+    expect(hasNewerServerData('2026-11-19T10:00:00+01:00', '2026-11-19T09:00:00.000Z')).toBe(false)
+    expect(hasNewerServerData('2026-11-19T10:00:01+01:00', '2026-11-19T09:00:00.000Z')).toBe(true)
+  })
+
+  it('never reloads on a missing or broken server value', () => {
+    expect(hasNewerServerData(null, a)).toBe(false)
+    expect(hasNewerServerData('garbage', a)).toBe(false)
+  })
+
+  it('reloads when the client has nothing usable yet', () => {
+    expect(hasNewerServerData(b, null)).toBe(true)
+    expect(hasNewerServerData(b, 'garbage')).toBe(true)
   })
 })
