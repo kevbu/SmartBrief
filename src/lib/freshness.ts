@@ -32,3 +32,17 @@ export function freshnessOf(dateStr: string | null, now: Date): Freshness {
   if (Number.isNaN(t)) return 'never'
   return now.getTime() - t > STALE_AFTER_MS ? 'stale' : 'fresh'
 }
+
+/**
+ * True when the server has refreshed since the client last loaded the feed.
+ * Unparseable or missing server timestamps never trigger a reload.
+ */
+export function hasNewerServerData(serverLast: string | null, clientLast: string | null): boolean {
+  if (!serverLast) return false
+  const server = new Date(serverLast).getTime()
+  if (Number.isNaN(server)) return false
+  if (!clientLast) return true
+  const client = new Date(clientLast).getTime()
+  if (Number.isNaN(client)) return true
+  return server > client
+}
